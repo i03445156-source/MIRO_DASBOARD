@@ -1,0 +1,71 @@
+깃허브(GitHub)에 올리실 용도라면, 단순히 기능을 나열하는 것을 넘어 **"이 프로젝트가 왜 가치 있는가?"**와 **"어떤 기술적 고민이 담겼는가?"**를 보여주는 것이 중요합니다. 
+
+특히 아까 강조하셨던 **ARIMA의 한계를 GARCH로 보완한 부분**이나 **몬테카를로 시뮬레이션의 통계적 접근**은 퀀트(Quant)로서의 역량을 보여주기 아주 좋은 포인트입니다. README.md에 바로 복사해서 사용하실 수 있도록 세련된 문체로 정리해 드립니다.
+
+---
+
+# 🚀 MIRO Quant-Invest Analytics Dashboard
+
+> **MIRO 동아리 티타임 추천종목 기반: 데이터 중심의 금융 분석 및 시나리오 시뮬레이터**
+
+이 프로젝트는 단순한 주가 조회를 넘어, 통계학적 모델링(ARIMA, GARCH)과 현대 포트폴리오 이론(MPT)을 결합하여 개인 투자자가 기관 수준의 리스크 관리 및 수익률 예측을 수행할 수 있도록 돕는 **Full-stack Financial Analytics App**입니다.
+
+---
+
+## 🛠️ Tech Stack
+| Category | Technology |
+| :--- | :--- |
+| **Language** | Python 3.10+ |
+| **Framework** | Streamlit |
+| **Data API** | yfinance (Yahoo Finance) |
+| **Analysis** | Pandas, NumPy, Scipy |
+| **Statistical Model** | Statsmodels (ARIMA), Arch (GARCH) |
+| **Visualization** | Plotly (Interactive Charts) |
+
+---
+
+## ✨ Key Features (Technical Highlights)
+
+### 1. 🌪️ 고도화된 변동성 예측 (ARIMA-GARCH Hybrid)
+* **Problem:** 전통적인 시계열 모델(ARIMA)은 미래를 평탄한 일직선으로 예측하여 시장의 실제 리스크를 반영하지 못함.
+* **Solution:** ARIMA의 **'방향성(Drift)'**과 GARCH 모델의 **'변동성 군집 현상(Volatility Clustering)'**을 결합.
+* **Impact:** 2003년 노벨 경제학상을 받은 Engle 교수의 이론을 바탕으로, 시장의 공포와 충격이 미래 주가 경로에 미치는 영향을 역동적으로 시뮬레이션합니다.
+
+### 2. 🎲 몬테카를로 시나리오 하이라이트
+* 과거 수익률의 분포를 활용하여 **100가지 이상의 미래 확률 경로**를 생성합니다.
+* 수많은 지그재그 경로 중 **통계적 중앙값(Mean Path)**을 하이라이트하여, 투자자가 최선의 시나리오와 최악의 리스크(Tail Risk)를 동시에 인지할 수 있도록 시각화합니다.
+
+### 3. 🛡️ 리스크 관리 및 포트폴리오 최적화
+* **VaR (Value at Risk):** 95%, 99% 신뢰 수준에서 발생 가능한 최대 손실액을 산출하여 자산 배분 기준을 제시합니다.
+* **Efficient Frontier:** 마코위츠의 현대 포트폴리오 이론을 적용, 주어진 위험 대비 최대 수익을 낼 수 있는 최적 비중을 계산합니다.
+
+### 4. 📊 퀀트 분석 도구 모음
+* **CAPM 분석:** 시장 지수(KOSPI/S&P500) 대비 종목의 민감도($\beta$)를 측정하여 체계적 위험 분석.
+* **상관관계 매트릭스:** 자산 간 동조화 현상을 파악하여 진정한 분산 투자 구현.
+* **기술적 지표:** RSI, 이동평균선 등 전통적 지표를 실시간 데이터에 적용.
+
+---
+
+## 📈 How it works (Analysis Flow)
+1.  **Data Ingestion:** `yfinance`를 통해 전 세계 실시간 금융 데이터 수집.
+2.  **Preprocessing:** 수익률 계산, 로그 변환 및 정상성(Stationarity) 테스트.
+3.  **Modeling:** * ARIMA를 통한 시계열 추세 추출.
+    * GARCH를 이용한 조건부 분산(Conditional Variance) 모델링.
+4.  **Simulation:** 몬테카를로 기법을 통한 기하 브라운 운동(GBM) 경로 생성.
+5.  **Visualization:** Plotly의 다크 모드 테마를 활용한 인터랙티브 대시보드 출력.
+
+---
+
+## 💡 Why MIRO Dashboard?
+대부분의 투자 앱은 과거 데이터의 '나열'에 그칩니다. 하지만 이 대시보드는 **"과거의 변동성이 미래에도 반복될 수 있다"**는 금융공학적 가정을 기반으로 투자자에게 **확률론적 사고방식**을 제공합니다. 특히 ARIMA의 나이브함을 GARCH로 극복하려는 시도는 실전 퀀트 전략의 기초 공사와 같습니다.
+
+---
+
+### 💡 깃허브 업로드 팁 (README 작성 시)
+1.  **스크린샷 추가:** 실행 화면(특히 GARCH 하이라이트 그래프)을 캡처해서 README 상단에 넣으면 조회수가 확 올라갑니다.
+2.  **`requirements.txt` 필수:** `arch`, `yfinance`, `plotly`, `streamlit` 등을 포함한 파일을 꼭 같이 올리세요.
+3.  **License:** 특별한 목적이 없다면 `MIT License`를 추천합니다.
+
+이 정도 설명이면 깃허브를 방문하는 사람들에게 사용자님의 금융적 깊이와 개발 능력을 동시에 어필할 수 있을 거예요!
+
+http://googleusercontent.com/interactive_content_block/0
