@@ -1,7 +1,7 @@
 // ══════════════════════════════════════════════════════════════════════
 //  api.js  — 데이터 패칭 레이어
-//  Yahoo Finance → Supabase Edge Function 프록시 경유
-//  매크로 데이터: Frankfurter (환율), FRED (금리/레포)
+//  주식: Python백엔드(HF) → Stooq → corsproxy→Yahoo → allorigins→Yahoo
+//  환율: Frankfurter (CORS 허용)  /  금리: FRED → 더미 폴백
 // ══════════════════════════════════════════════════════════════════════
 
 import { STOCK_PROXY_URL, SUPABASE_ANON_KEY, FRED_API_KEY, PYTHON_API_URL } from './config.js';
@@ -13,15 +13,9 @@ function fromCache(key) { const v = _cache.get(key); if (v && Date.now() - v.ts 
 function toCache(key, data) { _cache.set(key, { data, ts: Date.now() }); }
 
 // ══════════════════════════════════════════════════════════════════════
-//  주식 데이터  (Supabase Edge Function → Yahoo Finance)
+//  주식 데이터
 // ══════════════════════════════════════════════════════════════════════
 
-/**
- * fetchOHLC(ticker, startDate, endDate)
- * → { dates: string[], opens, highs, lows, closes, volumes }
- *
- * startDate / endDate : 'YYYY-MM-DD'  (endDate 생략 시 오늘)
- */
 export async function fetchOHLC(ticker, startDate, endDate = null) {
   const end   = endDate   ? new Date(endDate)   : new Date();
   const start = startDate ? new Date(startDate) : new Date(end - 365 * 86400_000);
@@ -38,111 +32,148 @@ export async function fetchOHLC(ticker, startDate, endDate = null) {
   return result;
 }
 
-/** 주가 시계열만 필요할 때 편의 함수 */
 export async function fetchClose(ticker, startDate, endDate = null) {
   const ohlc = await fetchOHLC(ticker, startDate, endDate);
   return { dates: ohlc.dates, closes: ohlc.closes };
 }
 
-// ── Python 백엔드 → Supabase → CORS 프록시 순서로 시도 ──────────────
+// ── Stooq 티커 변환 ─────────────────────────────────────────────────
+function _toStooqTicker(ticker) {
+  if (ticker.endsWith('.KS') || ticker.endsWith('.KQ'))
+    return ticker.replace(/\.(KS|KQ)$/i, '').toLowerCase() + '.kr';
+  if (ticker === 'ETH-USD') return 'eth.v';
+  if (ticker === 'BTC-USD') return 'btc.v';
+  return ticker.toLowerCase() + '.us';
+}
+
+function _parseStooqCSV(csv) {
+  const lines = csv.trim().split('\n');
+  if (lines.length < 2 || lines[1].trim() === '') throw new Error('Stooq: 데이터 없음');
+  const clean = v => { const n = parseFloat(v); return isNaN(n) ? null : +n.toFixed(4); };
+  const rows = lines.slice(1).map(l => l.split(','));
+  return {
+    dates:   rows.map(r => r[0]),
+    opens:   rows.map(r => clean(r[1])),
+    highs:   rows.map(r => clean(r[2])),
+    lows:    rows.map(r => clean(r[3])),
+    closes:  rows.map(r => clean(r[4])),
+    volumes: rows.map(r => parseInt(r[5]) || 0),
+  };
+}
+
+// ── 데이터 소스 체인 ─────────────────────────────────────────────────
 async function _fetchViaProxy(ticker, period1, period2, interval) {
 
-  // ① Python 백엔드 (yfinance) — 최우선
+  // ① Python 백엔드 (HuggingFace Space / Render — yfinance)
   if (PYTHON_API_URL && !PYTHON_API_URL.includes('YOUR-APP')) {
     try {
-      const startDate = new Date(period1 * 1000).toISOString().split('T')[0];
-      const endDate   = new Date(period2 * 1000).toISOString().split('T')[0];
-      const url = `${PYTHON_API_URL}/stock?ticker=${encodeURIComponent(ticker)}&start=${startDate}&end=${endDate}`;
-      const resp = await fetch(url, { signal: AbortSignal.timeout(20000) });
+      const s = new Date(period1 * 1000).toISOString().split('T')[0];
+      const e = new Date(period2 * 1000).toISOString().split('T')[0];
+      const resp = await fetch(
+        `${PYTHON_API_URL}/stock?ticker=${encodeURIComponent(ticker)}&start=${s}&end=${e}`,
+        { signal: AbortSignal.timeout(15000) }
+      );
       if (resp.ok) {
-        const data = await resp.json();
-        return {
-          dates:   data.dates,
-          opens:   data.opens,
-          highs:   data.highs,
-          lows:    data.lows,
-          closes:  data.closes,
-          volumes: data.volumes,
-        };
+        const d = await resp.json();
+        return { dates: d.dates, opens: d.opens, highs: d.highs,
+                 lows: d.lows, closes: d.closes, volumes: d.volumes };
       }
     } catch (e) { console.warn('[api] Python backend 실패:', e.message); }
   }
 
-  // ② Supabase Edge Function fallback
-  if (SUPABASE_ANON_KEY && !SUPABASE_ANON_KEY.startsWith('YOUR_')) {
-    try {
-      const resp = await fetch(STOCK_PROXY_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-          'apikey': SUPABASE_ANON_KEY,
-        },
-        body: JSON.stringify({ ticker, period1, period2, interval }),
-        signal: AbortSignal.timeout(8000),
-      });
-      if (resp.ok) return _parseYahoo(await resp.json());
-    } catch {}
-  }
+  // ② Stooq.com — CORS 허용, 한국주식(KS/KQ)·미국주식·ETF 지원
+  try {
+    const st = _toStooqTicker(ticker);
+    const d1 = new Date(period1 * 1000).toISOString().split('T')[0].replace(/-/g, '');
+    const d2 = new Date(period2 * 1000).toISOString().split('T')[0].replace(/-/g, '');
+    const resp = await fetch(
+      `https://stooq.com/q/d/l/?s=${encodeURIComponent(st)}&d1=${d1}&d2=${d2}&i=d`,
+      { signal: AbortSignal.timeout(12000) }
+    );
+    if (resp.ok) {
+      const text = await resp.text();
+      if (!text.startsWith('No data') && text.includes(',')) {
+        const result = _parseStooqCSV(text);
+        if (result.closes.some(v => v !== null)) return result;
+      }
+    }
+  } catch (e) { console.warn('[api] Stooq 실패:', e.message); }
 
-  // ③ CORS 프록시 fallback
+  // ③ corsproxy.io → Yahoo Finance
   const yahooUrl = `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?period1=${period1}&period2=${period2}&interval=${interval}`;
   try {
-    const resp = await fetch(`https://corsproxy.io/?url=${encodeURIComponent(yahooUrl)}`, {
-      signal: AbortSignal.timeout(10000),
-    });
+    const resp = await fetch(
+      `https://corsproxy.io/?url=${encodeURIComponent(yahooUrl)}`,
+      { signal: AbortSignal.timeout(10000) }
+    );
     if (resp.ok) return _parseYahoo(await resp.json());
   } catch {}
 
-  const resp = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(yahooUrl)}`, {
-    signal: AbortSignal.timeout(12000),
-  });
-  return _parseYahoo(await resp.json());
+  // ④ allorigins.win → Yahoo Finance (최후)
+  try {
+    const resp = await fetch(
+      `https://api.allorigins.win/raw?url=${encodeURIComponent(yahooUrl)}`,
+      { signal: AbortSignal.timeout(12000) }
+    );
+    if (resp.ok) return _parseYahoo(await resp.json());
+  } catch {}
+
+  throw new Error(`${ticker}: 모든 데이터 소스 실패`);
 }
 
 function _parseYahoo(raw) {
   const r = raw?.chart?.result?.[0];
   if (!r) throw new Error('Yahoo Finance: 데이터 없음');
-
   const timestamps = r.timestamp || [];
   const q = r.indicators?.quote?.[0] || {};
-  const dates  = timestamps.map(t => new Date(t * 1000).toISOString().split('T')[0]);
-  const opens  = q.open   || [];
-  const highs  = q.high   || [];
-  const lows   = q.low    || [];
-  const closes = q.close  || [];
-  const volumes = q.volume || [];
-
-  // NaN 정리
   const clean = arr => arr.map(v => (v == null || isNaN(v) ? null : +v.toFixed(4)));
   return {
-    dates,
-    opens:   clean(opens),
-    highs:   clean(highs),
-    lows:    clean(lows),
-    closes:  clean(closes),
-    volumes: volumes.map(v => v ?? 0),
+    dates:   timestamps.map(t => new Date(t * 1000).toISOString().split('T')[0]),
+    opens:   clean(q.open   || []),
+    highs:   clean(q.high   || []),
+    lows:    clean(q.low    || []),
+    closes:  clean(q.close  || []),
+    volumes: (q.volume || []).map(v => v ?? 0),
   };
 }
 
 // ══════════════════════════════════════════════════════════════════════
-//  환율  — Frankfurter API (무료, CORS 허용)
+//  환율  — Frankfurter (frankfurter.dev — CORS 허용)
 // ══════════════════════════════════════════════════════════════════════
 
-/** 현재 환율: 기준 통화 → 대상 통화 목록 */
+const FX_BASE = 'https://api.frankfurter.dev';
+
 export async function fetchFXRates(base = 'USD', targets = ['KRW', 'EUR', 'JPY', 'CNY']) {
   const ck = cacheKey('fx', base, targets.join(','));
   const cached = fromCache(ck);
   if (cached) return cached;
 
-  const url = `https://api.frankfurter.app/latest?from=${base}&to=${targets.join(',')}`;
-  const resp = await fetch(url);
-  const data = await resp.json();
-  toCache(ck, data.rates);
-  return data.rates;
+  try {
+    const resp = await fetch(`${FX_BASE}/v1/latest?base=${base}&symbols=${targets.join(',')}`,
+      { signal: AbortSignal.timeout(8000) });
+    if (resp.ok) {
+      const data = await resp.json();
+      toCache(ck, data.rates);
+      return data.rates;
+    }
+  } catch {}
+
+  // fallback: frankfurter.app
+  try {
+    const resp = await fetch(
+      `https://api.frankfurter.app/latest?from=${base}&to=${targets.join(',')}`,
+      { signal: AbortSignal.timeout(8000) }
+    );
+    if (resp.ok) {
+      const data = await resp.json();
+      toCache(ck, data.rates);
+      return data.rates;
+    }
+  } catch {}
+
+  return {};
 }
 
-/** 환율 시계열 (최근 N일) */
 export async function fetchFXHistory(from = 'USD', to = 'KRW', days = 90) {
   const ck = cacheKey('fxhist', from, to, days);
   const cached = fromCache(ck);
@@ -153,60 +184,79 @@ export async function fetchFXHistory(from = 'USD', to = 'KRW', days = 90) {
   const endStr   = end.toISOString().split('T')[0];
   const startStr = start.toISOString().split('T')[0];
 
-  const url = `https://api.frankfurter.app/${startStr}..${endStr}?from=${from}&to=${to}`;
-  const resp = await fetch(url);
-  const data = await resp.json();
+  try {
+    const resp = await fetch(
+      `${FX_BASE}/v1/${startStr}..${endStr}?base=${from}&symbols=${to}`,
+      { signal: AbortSignal.timeout(8000) }
+    );
+    if (resp.ok) {
+      const data = await resp.json();
+      const dates  = Object.keys(data.rates).sort();
+      const values = dates.map(d => data.rates[d][to]);
+      const result = { dates, values };
+      toCache(ck, result);
+      return result;
+    }
+  } catch {}
 
-  const dates  = Object.keys(data.rates).sort();
-  const values = dates.map(d => data.rates[d][to]);
-  const result = { dates, values };
-  toCache(ck, result);
-  return result;
+  // fallback: frankfurter.app
+  try {
+    const resp = await fetch(
+      `https://api.frankfurter.app/${startStr}..${endStr}?from=${from}&to=${to}`,
+      { signal: AbortSignal.timeout(8000) }
+    );
+    if (resp.ok) {
+      const data = await resp.json();
+      const dates  = Object.keys(data.rates).sort();
+      const values = dates.map(d => data.rates[d][to]);
+      const result = { dates, values };
+      toCache(ck, result);
+      return result;
+    }
+  } catch {}
+
+  return { dates: [], values: [] };
 }
 
 // ══════════════════════════════════════════════════════════════════════
-//  금리 / 레포  — FRED API
+//  금리 / 레포  — FRED API (브라우저 직접 호출 불가 → 더미 폴백)
 // ══════════════════════════════════════════════════════════════════════
 
-const FRED_BASE = 'https://api.stlouisfed.org/fred/series/observations';
-
-/**
- * FRED 시계열 조회
- * seriesId 예: 'FEDFUNDS' | 'DFF' | 'SOFR' | 'IORB' | 'GS10' | 'M2SL'
- */
 export async function fetchFRED(seriesId, limit = 60) {
-  if (!FRED_API_KEY || FRED_API_KEY === 'YOUR_FRED_API_KEY') {
-    console.warn('FRED_API_KEY 미설정 — 더미 데이터 반환');
-    return _fredDummy(seriesId);
-  }
-
   const ck = cacheKey('fred', seriesId, limit);
   const cached = fromCache(ck);
   if (cached) return cached;
 
-  const url = `${FRED_BASE}?series_id=${seriesId}&api_key=${FRED_API_KEY}&file_type=json&sort_order=desc&limit=${limit}`;
-  const resp = await fetch(url);
-  const data = await resp.json();
+  // FRED는 브라우저에서 CORS 차단 → Python 백엔드로 프록시 시도
+  if (PYTHON_API_URL && !PYTHON_API_URL.includes('YOUR-APP')) {
+    try {
+      const resp = await fetch(
+        `${PYTHON_API_URL}/fred?series_id=${seriesId}&limit=${limit}`,
+        { signal: AbortSignal.timeout(10000) }
+      );
+      if (resp.ok) {
+        const data = await resp.json();
+        toCache(ck, data);
+        return data;
+      }
+    } catch {}
+  }
 
-  const obs    = (data.observations || []).filter(o => o.value !== '.').reverse();
-  const dates  = obs.map(o => o.date);
-  const values = obs.map(o => parseFloat(o.value));
-  const result = { dates, values, latest: values[values.length - 1] };
-  toCache(ck, result);
-  return result;
+  // 백엔드 없으면 더미 데이터
+  return _fredDummy(seriesId);
 }
 
 function _fredDummy(seriesId) {
   const defaults = {
-    'FEDFUNDS': 5.33, 'DFF': 5.33, 'SOFR': 5.31, 'IORB': 5.40,
-    'GS10': 4.25, 'GS2': 4.80, 'M2SL': 21000, 'VIXCLS': 18.5,
+    'FEDFUNDS': 4.33, 'DFF': 4.33, 'SOFR': 4.31, 'IORB': 4.40,
+    'GS10': 4.25, 'GS2': 4.10, 'M2SL': 21500, 'VIXCLS': 22.0,
   };
   const val = defaults[seriesId] ?? 0;
   const dates  = Array.from({ length: 30 }, (_, i) => {
     const d = new Date(); d.setDate(d.getDate() - (29 - i));
     return d.toISOString().split('T')[0];
   });
-  const values = dates.map(() => val + (Math.random() - 0.5) * 0.1);
+  const values = dates.map(() => +(val + (Math.random() - 0.5) * 0.2).toFixed(2));
   return { dates, values, latest: val, isDummy: true };
 }
 
@@ -214,7 +264,6 @@ function _fredDummy(seriesId) {
 //  유틸
 // ══════════════════════════════════════════════════════════════════════
 
-/** 여러 티커의 최신 종가만 빠르게 가져오기 */
 export async function fetchLatestPrices(tickers) {
   const results = {};
   await Promise.allSettled(
@@ -231,7 +280,6 @@ export async function fetchLatestPrices(tickers) {
   return results;
 }
 
-/** 복수 티커 병렬 조회 */
 export async function fetchMultiClose(tickers, startDate, endDate = null) {
   const results = {};
   await Promise.allSettled(
@@ -243,5 +291,4 @@ export async function fetchMultiClose(tickers, startDate, endDate = null) {
   return results;
 }
 
-// window에 노출 (비모듈 스크립트에서도 접근 가능하도록)
 window._ttApi = { fetchOHLC, fetchClose, fetchFXRates, fetchFXHistory, fetchFRED, fetchLatestPrices, fetchMultiClose };
