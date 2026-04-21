@@ -3,7 +3,11 @@
 //  티타임 포트폴리오 대시보드 (기준일: 2026-03-13)
 // ══════════════════════════════════════════════════════════════════════
 
-// ── Supabase 설정 (anon/publishable key — 프론트엔드 노출 안전) ─────
+// ── Python 백엔드 (Render.com — yfinance) ──────────────────────────
+// Render 배포 후 실제 URL로 교체하세요: https://YOUR-APP.onrender.com
+export const PYTHON_API_URL = 'https://miro-stock-api.onrender.com';
+
+// ── Supabase (fallback) ────────────────────────────────────────────
 export const SUPABASE_URL      = 'https://fjhxvdctpctxbtksqiiy.supabase.co';
 export const SUPABASE_ANON_KEY = 'sb_publishable_DPg4t85IKaTcLH33TAY9aQ_msDphWuk';
 export const STOCK_PROXY_URL   = `${SUPABASE_URL}/functions/v1/stock-proxy`;

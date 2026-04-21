@@ -4,7 +4,7 @@
 //  매크로 데이터: Frankfurter (환율), FRED (금리/레포)
 // ══════════════════════════════════════════════════════════════════════
 
-import { STOCK_PROXY_URL, SUPABASE_ANON_KEY, FRED_API_KEY } from './config.js';
+import { STOCK_PROXY_URL, SUPABASE_ANON_KEY, FRED_API_KEY, PYTHON_API_URL } from './config.js';
 
 // ── 캐시 (세션 내 중복 요청 방지) ──────────────────────────────────
 const _cache = new Map();
@@ -44,11 +44,31 @@ export async function fetchClose(ticker, startDate, endDate = null) {
   return { dates: ohlc.dates, closes: ohlc.closes };
 }
 
-// ── 실제 Edge Function 호출 (Supabase → CORS 프록시 순서로 시도) ──────
+// ── Python 백엔드 → Supabase → CORS 프록시 순서로 시도 ──────────────
 async function _fetchViaProxy(ticker, period1, period2, interval) {
-  const yahooUrl = `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?period1=${period1}&period2=${period2}&interval=${interval}&events=div,splits`;
 
-  // 1. Supabase Edge Function 시도
+  // ① Python 백엔드 (yfinance) — 최우선
+  if (PYTHON_API_URL && !PYTHON_API_URL.includes('YOUR-APP')) {
+    try {
+      const startDate = new Date(period1 * 1000).toISOString().split('T')[0];
+      const endDate   = new Date(period2 * 1000).toISOString().split('T')[0];
+      const url = `${PYTHON_API_URL}/stock?ticker=${encodeURIComponent(ticker)}&start=${startDate}&end=${endDate}`;
+      const resp = await fetch(url, { signal: AbortSignal.timeout(20000) });
+      if (resp.ok) {
+        const data = await resp.json();
+        return {
+          dates:   data.dates,
+          opens:   data.opens,
+          highs:   data.highs,
+          lows:    data.lows,
+          closes:  data.closes,
+          volumes: data.volumes,
+        };
+      }
+    } catch (e) { console.warn('[api] Python backend 실패:', e.message); }
+  }
+
+  // ② Supabase Edge Function fallback
   if (SUPABASE_ANON_KEY && !SUPABASE_ANON_KEY.startsWith('YOUR_')) {
     try {
       const resp = await fetch(STOCK_PROXY_URL, {
@@ -65,7 +85,8 @@ async function _fetchViaProxy(ticker, period1, period2, interval) {
     } catch {}
   }
 
-  // 2. corsproxy.io fallback
+  // ③ CORS 프록시 fallback
+  const yahooUrl = `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?period1=${period1}&period2=${period2}&interval=${interval}`;
   try {
     const resp = await fetch(`https://corsproxy.io/?url=${encodeURIComponent(yahooUrl)}`, {
       signal: AbortSignal.timeout(10000),
@@ -73,7 +94,6 @@ async function _fetchViaProxy(ticker, period1, period2, interval) {
     if (resp.ok) return _parseYahoo(await resp.json());
   } catch {}
 
-  // 3. allorigins fallback
   const resp = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(yahooUrl)}`, {
     signal: AbortSignal.timeout(12000),
   });
