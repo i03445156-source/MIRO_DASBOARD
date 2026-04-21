@@ -63,31 +63,30 @@ function _parseStooqCSV(csv) {
 
 // ── 데이터 소스 체인 ─────────────────────────────────────────────────
 async function _fetchViaProxy(ticker, period1, period2, interval) {
+  const st = _toStooqTicker(ticker);
+  const d1 = new Date(period1 * 1000).toISOString().split('T')[0].replace(/-/g, '');
+  const d2 = new Date(period2 * 1000).toISOString().split('T')[0].replace(/-/g, '');
+  const stooqUrl = `https://stooq.com/q/d/l/?s=${encodeURIComponent(st)}&d1=${d1}&d2=${d2}&i=d`;
 
-  // ① Python 백엔드 (HuggingFace Space / Render — yfinance)
-  if (PYTHON_API_URL && !PYTHON_API_URL.includes('YOUR-APP')) {
-    try {
-      const s = new Date(period1 * 1000).toISOString().split('T')[0];
-      const e = new Date(period2 * 1000).toISOString().split('T')[0];
-      const resp = await fetch(
-        `${PYTHON_API_URL}/stock?ticker=${encodeURIComponent(ticker)}&start=${s}&end=${e}`,
-        { signal: AbortSignal.timeout(15000) }
-      );
-      if (resp.ok) {
-        const d = await resp.json();
-        return { dates: d.dates, opens: d.opens, highs: d.highs,
-                 lows: d.lows, closes: d.closes, volumes: d.volumes };
-      }
-    } catch (e) { console.warn('[api] Python backend 실패:', e.message); }
-  }
-
-  // ② Stooq.com — CORS 허용, 한국주식(KS/KQ)·미국주식·ETF 지원
+  // ① corsproxy.io → Stooq (Stooq은 Yahoo보다 프록시 차단 없음)
   try {
-    const st = _toStooqTicker(ticker);
-    const d1 = new Date(period1 * 1000).toISOString().split('T')[0].replace(/-/g, '');
-    const d2 = new Date(period2 * 1000).toISOString().split('T')[0].replace(/-/g, '');
     const resp = await fetch(
-      `https://stooq.com/q/d/l/?s=${encodeURIComponent(st)}&d1=${d1}&d2=${d2}&i=d`,
+      `https://corsproxy.io/?url=${encodeURIComponent(stooqUrl)}`,
+      { signal: AbortSignal.timeout(10000) }
+    );
+    if (resp.ok) {
+      const text = await resp.text();
+      if (!text.startsWith('No data') && text.includes(',')) {
+        const result = _parseStooqCSV(text);
+        if (result.closes.some(v => v !== null)) return result;
+      }
+    }
+  } catch (e) { console.warn('[api] corsproxy→Stooq 실패:', e.message); }
+
+  // ② allorigins.win → Stooq
+  try {
+    const resp = await fetch(
+      `https://api.allorigins.win/raw?url=${encodeURIComponent(stooqUrl)}`,
       { signal: AbortSignal.timeout(12000) }
     );
     if (resp.ok) {
@@ -97,9 +96,26 @@ async function _fetchViaProxy(ticker, period1, period2, interval) {
         if (result.closes.some(v => v !== null)) return result;
       }
     }
-  } catch (e) { console.warn('[api] Stooq 실패:', e.message); }
+  } catch (e) { console.warn('[api] allorigins→Stooq 실패:', e.message); }
 
-  // ③ corsproxy.io → Yahoo Finance
+  // ③ Python 백엔드 (HuggingFace 배포 후 사용)
+  if (PYTHON_API_URL && !PYTHON_API_URL.includes('YOUR-APP')) {
+    try {
+      const s = new Date(period1 * 1000).toISOString().split('T')[0];
+      const e = new Date(period2 * 1000).toISOString().split('T')[0];
+      const resp = await fetch(
+        `${PYTHON_API_URL}/stock?ticker=${encodeURIComponent(ticker)}&start=${s}&end=${e}`,
+        { signal: AbortSignal.timeout(8000) }
+      );
+      if (resp.ok) {
+        const d = await resp.json();
+        return { dates: d.dates, opens: d.opens, highs: d.highs,
+                 lows: d.lows, closes: d.closes, volumes: d.volumes };
+      }
+    } catch (e) { console.warn('[api] Python backend 실패:', e.message); }
+  }
+
+  // ④ corsproxy.io → Yahoo Finance
   const yahooUrl = `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?period1=${period1}&period2=${period2}&interval=${interval}`;
   try {
     const resp = await fetch(
