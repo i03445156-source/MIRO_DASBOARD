@@ -30,21 +30,12 @@
 <body class="bg-black text-matrix font-mono min-h-screen overflow-x-hidden">
 
   <!-- ══ HEADER ══════════════════════════════════════════════════════════ -->
-  <header class="border-b border-matrix/20 px-4 py-2 flex items-center justify-between sticky top-0 z-50 bg-black/95 backdrop-blur">
-    <div>
-      <h1 class="text-lg md:text-xl font-bold glitch" data-text="⬛ TT-AI-CFO: SECURE_CORE v3.14">
-        ⬛ TT-AI-CFO: SECURE_CORE v3.14
-      </h1>
-      <p class="text-xs text-matrix/50 mt-0.5">
-        [STATUS: <span class="text-matrix">OPERATIONAL</span>]&nbsp;
-        [DATE: <span id="hdr-date">--</span>]&nbsp;
-        [KRX: <span id="hdr-krx" class="text-gold">LOADING</span>]&nbsp;
-        [NYSE: <span id="hdr-nyse" class="text-gold">LOADING</span>]
-      </p>
-    </div>
-    <div class="text-right text-xs text-matrix/40 hidden sm:block">
-      <p>BASE: 2026-03-13</p>
-      <p>UPDATE: <span id="hdr-update">--</span></p>
+  <header class="border-b border-white/10 px-6 py-3 flex items-center justify-between sticky top-0 z-50 bg-black/95 backdrop-blur">
+    <h1 class="text-2xl font-bold tracking-widest text-white">MIRO</h1>
+    <div class="flex items-center gap-5 text-xs text-white/35">
+      <span><span id="hdr-krx" class="text-white/60">--</span> KRX</span>
+      <span><span id="hdr-nyse" class="text-white/60">--</span> NYSE</span>
+      <span id="hdr-date" class="hidden sm:inline"></span>
     </div>
   </header>
 

@@ -165,7 +165,7 @@ export async function runRiskAnalysis(selectedNames, investmentMW, confLevel) {
     {
       x: portRets.map(v => v * 100),
       type: 'histogram', nbinsx: 50,
-      marker: { color: '#00FF41', opacity: 0.7 },
+      marker: { color: '#aaaaaa', opacity: 0.7 },
       name: '수익률 분포',
     }
   ], {
@@ -201,7 +201,7 @@ export async function runRiskAnalysis(selectedNames, investmentMW, confLevel) {
       x: validNames, y: validNames,
       type: 'heatmap',
       colorscale: [
-        [0, '#FF3333'], [0.5, '#050505'], [1, '#00FF41']
+        [0, '#444444'], [0.5, '#111111'], [1, '#ffffff']
       ],
       zmin: -1, zmax: 1,
       text: corrMatrix.map(row => row.map(v => v.toFixed(2))),
@@ -292,7 +292,7 @@ export async function runPortfolioOptimization(selectedNames, rfRate, nSim) {
       marker: {
         size: 3,
         color: results.map(r => r.sharpe),
-        colorscale: [[0,'#FF3333'],[0.5,'#FFD700'],[1,'#00FF41']],
+        colorscale: [[0,'#333333'],[0.5,'#888888'],[1,'#ffffff']],
         colorbar: { title: 'Sharpe', tickfont: { size: 9 } },
         opacity: 0.6,
       },
@@ -357,13 +357,13 @@ export async function runPortfolioOptimization(selectedNames, rfRate, nSim) {
   const mcDays = Array.from({ length: 253 }, (_, i) => i);
   const mcTraces = mcPaths.map(p => ({
     x: mcDays, y: p, mode: 'lines',
-    line: { color: 'rgba(0,255,65,0.1)', width: 0.8 }, showlegend: false,
+    line: { color: 'rgba(255,255,255,0.07)', width: 0.8 }, showlegend: false,
   }));
   const mcMean = mcDays.map(d => mean(mcPaths.map(p => p[d])));
-  mcTraces.push({ x: mcDays, y: mcMean, mode: 'lines', name: '평균 경로', line: { color: '#FFD700', width: 2 } });
+  mcTraces.push({ x: mcDays, y: mcMean, mode: 'lines', name: '평균 경로', line: { color: '#ffffff', width: 2 } });
   mcTraces.push({
     x: mcDays, y: Array(253).fill(100 * (1 + 0.035 / 252) ** mcDays[mcDays.length - 1]),
-    mode: 'lines', name: '연 3.5% 예금', line: { color: '#FF3333', dash: 'dash', width: 1.5 },
+    mode: 'lines', name: '연 3.5% 예금', line: { color: '#666666', dash: 'dash', width: 1.5 },
   });
 
   Plotly.newPlot('chart-montecarlo', mcTraces, {

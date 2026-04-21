@@ -45,8 +45,8 @@ async function loadFXSection() {
       {
         x: fxHist.dates, y: fxHist.values,
         mode: 'lines', name: 'USD/KRW',
-        line: { color: '#00FF41', width: 2 },
-        fill: 'tozeroy', fillcolor: 'rgba(0,255,65,0.05)',
+        line: { color: '#ffffff', width: 1.8 },
+        fill: 'tozeroy', fillcolor: 'rgba(255,255,255,0.04)',
       }
     ], {
       ...DARK_LAYOUT,
@@ -77,17 +77,16 @@ async function loadRatesSection() {
 
     // 금리 추이 차트
     const traces = [
-      { x: fedFunds.dates, y: fedFunds.values, name: 'Fed Funds',    line: { color: '#00FF41', width: 2 } },
-      { x: us10y.dates,    y: us10y.values,    name: 'US 10Y',       line: { color: '#00CFFF', width: 1.5 } },
-      { x: us2y.dates,     y: us2y.values,     name: 'US 2Y',        line: { color: '#FFD700', width: 1.5, dash: 'dash' } },
+      { x: fedFunds.dates, y: fedFunds.values, name: 'Fed Funds', line: { color: '#ffffff', width: 2 } },
+      { x: us10y.dates,    y: us10y.values,    name: 'US 10Y',    line: { color: '#aaaaaa', width: 1.5 } },
+      { x: us2y.dates,     y: us2y.values,     name: 'US 2Y',     line: { color: '#777777', width: 1.5, dash: 'dash' } },
     ].map(t => ({ ...t, mode: 'lines' }));
 
-    // 한국 기준금리는 수평선으로 표시
     traces.push({
       x: [fedFunds.dates[0], fedFunds.dates[fedFunds.dates.length - 1]],
       y: [BOK_RATE, BOK_RATE],
       mode: 'lines', name: `한국 기준금리 (${BOK_RATE}%)`,
-      line: { color: '#FF69B4', dash: 'dot', width: 1.5 },
+      line: { color: '#cccccc', dash: 'dot', width: 1.5 },
     });
 
     Plotly.newPlot('chart-rates', traces, {
@@ -131,8 +130,8 @@ async function loadRepoSection() {
 
     // 레포 차트
     const traces = [
-      { x: sofr.dates, y: sofr.values, name: 'SOFR',       line: { color: '#00FF41', width: 2 } },
-      { x: iorb.dates, y: iorb.values, name: 'IORB (기준)', line: { color: '#FFD700', width: 1.5, dash: 'dash' } },
+      { x: sofr.dates, y: sofr.values, name: 'SOFR',       line: { color: '#ffffff', width: 2 } },
+      { x: iorb.dates, y: iorb.values, name: 'IORB (기준)', line: { color: '#aaaaaa', width: 1.5, dash: 'dash' } },
     ].map(t => ({ ...t, mode: 'lines' }));
 
     Plotly.newPlot('chart-repo', traces, {

@@ -12,7 +12,7 @@ export const STOCK_PROXY_URL   = `${SUPABASE_URL}/functions/v1/stock-proxy`;
 export const GEMINI_API_KEY_DEFAULT = 'AIzaSyAYI_gPN63Q-rWHrcc6izX5nmsAT8239SI';
 
 // ── FRED API (금리/레포 — https://fred.stlouisfed.org/docs/api/api_key.html) ─
-export const FRED_API_KEY = 'YOUR_FRED_API_KEY';   // 무료 발급 후 입력
+export const FRED_API_KEY = '47d073f722cfe9d92851890505f12c66';
 
 // ── 기준일 (티타임 회의 전날 종가 기준) ─────────────────────────────
 export const BASE_DATE = '2026-03-13';

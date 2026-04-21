@@ -32,34 +32,24 @@ document.addEventListener('DOMContentLoaded', () => {
 function initHeader() {
   function tick() {
     const now = new Date();
-    const dateStr = now.toLocaleDateString('ko-KR', { year:'numeric', month:'2-digit', day:'2-digit' });
-    const timeStr = now.toLocaleTimeString('ko-KR', { hour12: false });
     const el = document.getElementById('hdr-date');
-    if (el) el.textContent = `${dateStr} ${timeStr}`;
+    if (el) el.textContent = now.toLocaleString('ko-KR', { hour12: false });
 
-    // 시장 상태 (KST 09:00~15:30 / EST 09:30~16:00)
-    const h = now.getHours(), m = now.getMinutes();
+    const h = now.getHours(), m = now.getMinutes(), dow = now.getDay();
     const totalMin = h * 60 + m;
+
     const krxEl  = document.getElementById('hdr-krx');
     const nyseEl = document.getElementById('hdr-nyse');
-    const dow = now.getDay();
-
     if (krxEl) {
-      const isKrxOpen = dow >= 1 && dow <= 5 && totalMin >= 540 && totalMin < 930;
-      krxEl.textContent = isKrxOpen ? 'OPEN' : 'CLOSED';
-      krxEl.className   = isKrxOpen ? 'text-matrix' : 'text-crimson';
+      const open = dow >= 1 && dow <= 5 && totalMin >= 540 && totalMin < 930;
+      krxEl.textContent = open ? 'OPEN' : 'CLOSED';
+      krxEl.className   = open ? 'text-white' : 'text-white/30';
     }
     if (nyseEl) {
-      // UTC+9 기준 NYSE: 22:30 ~ 05:00 (다음날)
-      const utcMin = (h * 60 + m + (now.getTimezoneOffset())) % 1440;
-      // 간단히 KST 23:30 ~ 다음날 06:00 으로 근사
-      const isNyseOpen = dow >= 1 && dow <= 5 && (totalMin >= 1410 || totalMin < 360);
-      nyseEl.textContent = isNyseOpen ? 'OPEN' : 'CLOSED';
-      nyseEl.className   = isNyseOpen ? 'text-matrix' : 'text-matrix/40';
+      const open = dow >= 1 && dow <= 5 && (totalMin >= 1410 || totalMin < 360);
+      nyseEl.textContent = open ? 'OPEN' : 'CLOSED';
+      nyseEl.className   = open ? 'text-white' : 'text-white/30';
     }
-
-    const updEl = document.getElementById('hdr-update');
-    if (updEl) updEl.textContent = timeStr;
   }
   tick();
   setInterval(tick, 1000);
