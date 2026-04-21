@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TT-AI-CFO | SECURE_CORE v3.14</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+  <link rel="stylesheet" href="css/style.css">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            matrix: '#00FF41',
+            cyber: '#00CFFF',
+            gold: '#FFD700',
+            crimson: '#FF3333',
+            panel: '#050505',
+            border: '#1a1a1a',
+          },
+          fontFamily: { mono: ['Fira Code', 'monospace'] }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-black text-matrix font-mono min-h-screen overflow-x-hidden">
+
+  <!-- ══ HEADER ══════════════════════════════════════════════════════════ -->
+  <header class="border-b border-matrix/20 px-4 py-2 flex items-center justify-between sticky top-0 z-50 bg-black/95 backdrop-blur">
+    <div>
+      <h1 class="text-lg md:text-xl font-bold glitch" data-text="⬛ TT-AI-CFO: SECURE_CORE v3.14">
+        ⬛ TT-AI-CFO: SECURE_CORE v3.14
+      </h1>
+      <p class="text-xs text-matrix/50 mt-0.5">
+        [STATUS: <span class="text-matrix">OPERATIONAL</span>]&nbsp;
+        [DATE: <span id="hdr-date">--</span>]&nbsp;
+        [KRX: <span id="hdr-krx" class="text-gold">LOADING</span>]&nbsp;
+        [NYSE: <span id="hdr-nyse" class="text-gold">LOADING</span>]
+      </p>
+    </div>
+    <div class="text-right text-xs text-matrix/40 hidden sm:block">
+      <p>BASE: 2026-03-13</p>
+      <p>UPDATE: <span id="hdr-update">--</span></p>
+    </div>
+  </header>
+
+  <!-- ══ NAV TABS ════════════════════════════════════════════════════════ -->
+  <nav class="border-b border-matrix/20 bg-panel overflow-x-auto">
+    <div class="flex min-w-max" id="nav-tabs">
+      <button class="tab-btn active" data-tab="dashboard">📊 대시보드</button>
+      <button class="tab-btn" data-tab="returns">📈 수익률</button>
+      <button class="tab-btn" data-tab="risk">🛡️ 리스크</button>
+      <button class="tab-btn" data-tab="portfolio">🎯 포트폴리오</button>
+      <button class="tab-btn" data-tab="technical">🔬 기술분석</button>
+      <button class="tab-btn" data-tab="models">💡 예측모델</button>
+      <button class="tab-btn" data-tab="macro">🌐 매크로</button>
+      <button class="tab-btn" data-tab="ai">🤖 AI-CFO</button>
+    </div>
+  </nav>
+
+  <!-- ══ MAIN CONTENT ════════════════════════════════════════════════════ -->
+  <main class="p-4 md:p-6">
+
+    <!-- ─── 1. DASHBOARD ──────────────────────────────────────────────── -->
+    <section id="tab-dashboard" class="tab-content">
+      <div class="section-header">
+        <span class="text-cyber">//</span> 포트폴리오 대시보드
+        <span class="text-matrix/40 text-xs ml-2">실시간 현황</span>
+      </div>
+
+      <!-- KPI Row -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6" id="kpi-row">
+        <div class="kpi-card">
+          <div class="kpi-label">전체 수익률</div>
+          <div class="kpi-value" id="kpi-total-return">--</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">최고 수익 종목</div>
+          <div class="kpi-value text-matrix" id="kpi-top-stock">--</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">최저 수익 종목</div>
+          <div class="kpi-value text-crimson" id="kpi-bot-stock">--</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">포트폴리오 수</div>
+          <div class="kpi-value text-cyber" id="kpi-members">--</div>
+        </div>
+      </div>
+
+      <!-- Member cards grid -->
+      <div class="section-header mb-3">
+        <span class="text-cyber">//</span> 멤버별 수익률 현황
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 mb-6" id="member-cards">
+        <div class="card text-matrix/40 text-center py-8">데이터 로딩 중...</div>
+      </div>
+
+      <!-- Mini chart -->
+      <div class="card">
+        <div class="card-title">전체 수익률 히트맵 (기준일: 2026-03-13)</div>
+        <div id="chart-heatmap" class="h-64"></div>
+      </div>
+    </section>
+
+    <!-- ─── 2. RETURNS ─────────────────────────────────────────────────── -->
+    <section id="tab-returns" class="tab-content hidden">
+      <div class="section-header">
+        <span class="text-cyber">//</span> 수익률 추적기
+        <span class="text-matrix/40 text-xs ml-2">기준일 2026-03-13 대비</span>
+      </div>
+
+      <div class="flex flex-wrap gap-3 mb-4">
+        <!-- Member selector -->
+        <div class="flex items-center gap-2">
+          <label class="text-xs text-matrix/60">멤버</label>
+          <select id="ret-member" class="terminal-select">
+            <option value="__all__">전체보기</option>
+          </select>
+        </div>
+        <button id="ret-load-btn" class="btn-primary">▶ 로드</button>
+        <div id="ret-status" class="text-xs text-matrix/40 self-center"></div>
+      </div>
+
+      <div class="card mb-4">
+        <div class="card-title">누적 수익률 (%)</div>
+        <div id="chart-returns" class="h-96"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">현재 수익률 랭킹</div>
+        <div id="returns-table" class="overflow-x-auto"></div>
+      </div>
+    </section>
+
+    <!-- ─── 3. RISK ────────────────────────────────────────────────────── -->
+    <section id="tab-risk" class="tab-content hidden">
+      <div class="section-header">
+        <span class="text-cyber">//</span> 리스크 분석 (VaR)
+      </div>
+
+      <div class="flex flex-wrap gap-3 mb-4">
+        <div class="flex items-center gap-2">
+          <label class="text-xs text-matrix/60">종목 선택</label>
+          <select id="risk-stocks" multiple class="terminal-select h-24 min-w-48"></select>
+        </div>
+        <div class="flex flex-col gap-2">
+          <div class="flex items-center gap-2">
+            <label class="text-xs text-matrix/60">투자금액(만원)</label>
+            <input id="risk-investment" type="number" value="1000" class="terminal-input w-28">
+          </div>
+          <div class="flex items-center gap-2">
+            <label class="text-xs text-matrix/60">신뢰수준</label>
+            <select id="risk-conf" class="terminal-select">
+              <option value="0.95">95%</option>
+              <option value="0.99">99%</option>
+            </select>
+          </div>
+          <button id="risk-run-btn" class="btn-primary">▶ 분석</button>
+        </div>
+        <div id="risk-status" class="text-xs text-matrix/40 self-center"></div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4" id="risk-kpis">
+        <div class="kpi-card"><div class="kpi-label">일일 변동성</div><div class="kpi-value" id="risk-vol">--</div></div>
+        <div class="kpi-card"><div class="kpi-label">VaR (1일)</div><div class="kpi-value text-crimson" id="risk-var">--</div></div>
+        <div class="kpi-card"><div class="kpi-label">최대 손실</div><div class="kpi-value text-crimson" id="risk-mdd">--</div></div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div class="card">
+          <div class="card-title">수익률 분포 (VaR 표시)</div>
+          <div id="chart-var-dist" class="h-72"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">종목 간 상관관계</div>
+          <div id="chart-corr" class="h-72"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── 4. PORTFOLIO OPTIMIZER ────────────────────────────────────── -->
+    <section id="tab-portfolio" class="tab-content hidden">
+      <div class="section-header">
+        <span class="text-cyber">//</span> 최적 포트폴리오 (마코위츠)
+      </div>
+
+      <div class="flex flex-wrap gap-3 mb-4">
+        <div class="flex items-center gap-2">
+          <label class="text-xs text-matrix/60">종목 선택</label>
+          <select id="port-stocks" multiple class="terminal-select h-24 min-w-48"></select>
+        </div>
+        <div class="flex flex-col gap-2">
+          <div class="flex items-center gap-2">
+            <label class="text-xs text-matrix/60">무위험수익률(%)</label>
+            <input id="port-rf" type="number" value="3.5" step="0.1" class="terminal-input w-20">
+          </div>
+          <div class="flex items-center gap-2">
+            <label class="text-xs text-matrix/60">시뮬레이션 수</label>
+            <select id="port-nsim" class="terminal-select">
+              <option value="500">500</option>
+              <option value="2000" selected>2000</option>
+              <option value="5000">5000</option>
+            </select>
+          </div>
+          <button id="port-run-btn" class="btn-primary">▶ 최적화</button>
+        </div>
+        <div id="port-status" class="text-xs text-matrix/40 self-center"></div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+        <div class="kpi-card"><div class="kpi-label">최적 샤프비율</div><div class="kpi-value text-gold" id="port-sharpe">--</div></div>
+        <div class="kpi-card"><div class="kpi-label">기대수익률(연)</div><div class="kpi-value" id="port-ret">--</div></div>
+        <div class="kpi-card"><div class="kpi-label">포트폴리오 변동성</div><div class="kpi-value text-cyber" id="port-vol">--</div></div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div class="card">
+          <div class="card-title">효율적 프론티어</div>
+          <div id="chart-frontier" class="h-80"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">최적 비중</div>
+          <div id="chart-weights" class="h-80"></div>
+          <div id="weights-table" class="mt-3 overflow-x-auto"></div>
+        </div>
+      </div>
+
+      <!-- Monte Carlo stress test -->
+      <div class="card mt-4">
+        <div class="card-title">Monte Carlo 스트레스 테스트 (252 영업일)</div>
+        <div id="chart-montecarlo" class="h-72"></div>
+      </div>
+    </section>
+
+    <!-- ─── 5. TECHNICAL ANALYSIS ─────────────────────────────────────── -->
+    <section id="tab-technical" class="tab-content hidden">
+      <div class="section-header">
+        <span class="text-cyber">//</span> 기술적 분석 (RSI · MA · Granville)
+      </div>
+
+      <div class="flex flex-wrap gap-3 mb-4">
+        <div class="flex items-center gap-2">
+          <label class="text-xs text-matrix/60">멤버</label>
+          <select id="ta-member" class="terminal-select">
+            <option value="__all__">전체</option>
+          </select>
+        </div>
+        <div class="flex items-center gap-2">
+          <label class="text-xs text-matrix/60">종목</label>
+          <select id="ta-stock" class="terminal-select min-w-40"></select>
+        </div>
+        <div class="flex items-center gap-2">
+          <label class="text-xs text-matrix/60">전략</label>
+          <select id="ta-strategy" class="terminal-select">
+            <option value="5,20">단기 (5/20)</option>
+            <option value="20,60">중기 (20/60)</option>
+            <option value="60,200" selected>장기 (60/200)</option>
+          </select>
+        </div>
+        <div class="flex items-center gap-2">
+          <label class="text-xs text-matrix/60">RSI기간</label>
+          <input id="ta-rsi-period" type="number" value="14" min="5" max="30" class="terminal-input w-16">
+        </div>
+        <button id="ta-run-btn" class="btn-primary">▶ 분석</button>
+        <div id="ta-status" class="text-xs text-matrix/40 self-center"></div>
+      </div>
+
+      <!-- Signal banner -->
+      <div id="ta-signal-banner" class="hidden mb-4 p-3 border rounded text-sm"></div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+        <div class="kpi-card"><div class="kpi-label">현재 RSI</div><div class="kpi-value" id="ta-rsi-val">--</div></div>
+        <div class="kpi-card"><div class="kpi-label">이동평균 배열</div><div class="kpi-value" id="ta-ma-signal">--</div></div>
+        <div class="kpi-card"><div class="kpi-label">Granville 신호</div><div class="kpi-value" id="ta-granville">--</div></div>
+      </div>
+
+      <div class="card mb-4">
+        <div class="card-title">주가 + 이동평균선</div>
+        <div id="chart-ta-price" class="h-80"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">RSI 지표</div>
+        <div id="chart-ta-rsi" class="h-48"></div>
+      </div>
+    </section>
+
+    <!-- ─── 6. PREDICTION MODELS ──────────────────────────────────────── -->
+    <section id="tab-models" class="tab-content hidden">
+      <div class="section-header">
+        <span class="text-cyber">//</span> 예측 모델 (GARCH-Monte Carlo · ARIMA)
+      </div>
+
+      <div class="flex flex-wrap gap-3 mb-4">
+        <div class="flex items-center gap-2">
+          <label class="text-xs text-matrix/60">멤버</label>
+          <select id="mod-member" class="terminal-select">
+            <option value="__all__">전체</option>
+          </select>
+        </div>
+        <div class="flex items-center gap-2">
+          <label class="text-xs text-matrix/60">종목</label>
+          <select id="mod-stock" class="terminal-select min-w-40"></select>
+        </div>
+        <div class="flex items-center gap-2">
+          <label class="text-xs text-matrix/60">예측일수</label>
+          <input id="mod-days" type="number" value="30" min="10" max="90" class="terminal-input w-16">
+        </div>
+        <div class="flex items-center gap-2">
+          <label class="text-xs text-matrix/60">시뮬레이션</label>
+          <select id="mod-nsim" class="terminal-select">
+            <option value="100">100</option>
+            <option value="500" selected>500</option>
+            <option value="1000">1000</option>
+          </select>
+        </div>
+        <button id="mod-run-btn" class="btn-primary">▶ 실행</button>
+        <div id="mod-status" class="text-xs text-matrix/40 self-center"></div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+        <div class="kpi-card"><div class="kpi-label">현재가</div><div class="kpi-value" id="mod-curr">--</div></div>
+        <div class="kpi-card"><div class="kpi-label">평균 예측가</div><div class="kpi-value text-gold" id="mod-mean">--</div></div>
+        <div class="kpi-card"><div class="kpi-label">예측 변동성</div><div class="kpi-value text-cyber" id="mod-vol">--</div></div>
+      </div>
+
+      <div class="card mb-4">
+        <div class="card-title">Monte Carlo 시나리오 + 평균 경로</div>
+        <div id="chart-mc-paths" class="h-96"></div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div class="card">
+          <div class="card-title">예측 분포 (최종일)</div>
+          <div id="chart-mc-dist" class="h-64"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">수익률 히스토리 + 변동성</div>
+          <div id="chart-mc-vol" class="h-64"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── 7. MACRO ──────────────────────────────────────────────────── -->
+    <section id="tab-macro" class="tab-content hidden">
+      <div class="section-header">
+        <span class="text-cyber">//</span> 매크로 지표
+        <span class="text-matrix/40 text-xs ml-2">환율 · 금리 · 레포</span>
+      </div>
+
+      <!-- Exchange Rates -->
+      <div class="section-subheader">💱 환율 (실시간)</div>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4" id="macro-fx-cards">
+        <div class="kpi-card"><div class="kpi-label">USD/KRW</div><div class="kpi-value" id="fx-usdkrw">--</div></div>
+        <div class="kpi-card"><div class="kpi-label">EUR/KRW</div><div class="kpi-value" id="fx-eurkrw">--</div></div>
+        <div class="kpi-card"><div class="kpi-label">JPY/KRW (×100)</div><div class="kpi-value" id="fx-jpykrw">--</div></div>
+        <div class="kpi-card"><div class="kpi-label">CNY/KRW</div><div class="kpi-value" id="fx-cnykrw">--</div></div>
+      </div>
+      <div class="card mb-6">
+        <div class="card-title">환율 추이 (최근 90일)</div>
+        <div id="chart-fx-trend" class="h-64"></div>
+      </div>
+
+      <!-- Interest Rates -->
+      <div class="section-subheader">📊 금리</div>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+        <div class="kpi-card"><div class="kpi-label">Fed Funds Rate</div><div class="kpi-value text-gold" id="rate-fed">--</div></div>
+        <div class="kpi-card"><div class="kpi-label">한국 기준금리</div><div class="kpi-value text-gold" id="rate-bok">--</div></div>
+        <div class="kpi-card"><div class="kpi-label">US 10Y Treasury</div><div class="kpi-value text-cyber" id="rate-us10y">--</div></div>
+        <div class="kpi-card"><div class="kpi-label">KR 국채 10Y</div><div class="kpi-value text-cyber" id="rate-kr10y">--</div></div>
+      </div>
+      <div class="card mb-6">
+        <div class="card-title">주요 금리 추이 (FRED 데이터)</div>
+        <div id="chart-rates" class="h-64"></div>
+      </div>
+
+      <!-- Repo / Money Market -->
+      <div class="section-subheader">🏦 레포 · 단기자금시장</div>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+        <div class="kpi-card"><div class="kpi-label">SOFR</div><div class="kpi-value" id="repo-sofr">--</div></div>
+        <div class="kpi-card"><div class="kpi-label">IORB</div><div class="kpi-value" id="repo-iorb">--</div></div>
+        <div class="kpi-card"><div class="kpi-label">US M2 (조달러)</div><div class="kpi-value text-cyber" id="macro-m2">--</div></div>
+        <div class="kpi-card"><div class="kpi-label">VIX</div><div class="kpi-value text-crimson" id="macro-vix">--</div></div>
+      </div>
+      <div class="card mb-4">
+        <div class="card-title">레포/단기금리 추이</div>
+        <div id="chart-repo" class="h-64"></div>
+      </div>
+
+      <!-- FRED API Key notice -->
+      <div class="card border-gold/30 text-xs text-matrix/50">
+        <p>⚠️ 금리/레포 데이터는 <span class="text-gold">FRED API</span> 를 사용합니다.</p>
+        <p>무료 API 키: <a href="https://fred.stlouisfed.org/docs/api/api_key.html" class="text-cyber underline" target="_blank">fred.stlouisfed.org</a> 에서 발급 후 <code>js/config.js</code>의 <code>FRED_API_KEY</code>에 입력하세요.</p>
+        <p class="mt-1">환율 데이터는 <span class="text-gold">Frankfurter API</span> (무료, 키 불필요) 사용.</p>
+      </div>
+    </section>
+
+    <!-- ─── 8. AI CHAT ─────────────────────────────────────────────────── -->
+    <section id="tab-ai" class="tab-content hidden">
+      <div class="section-header">
+        <span class="text-cyber">//</span> AI-CFO (Gemini)
+      </div>
+
+      <!-- API Key input -->
+      <div id="ai-key-panel" class="card mb-4 border-gold/30">
+        <div class="card-title text-gold">🔑 Gemini API Key 설정</div>
+        <div class="flex gap-2 mt-2">
+          <input id="ai-api-key" type="password" placeholder="AIza..." class="terminal-input flex-1">
+          <button id="ai-key-save-btn" class="btn-secondary">저장</button>
+        </div>
+        <p class="text-xs text-matrix/40 mt-1">
+          키는 브라우저 localStorage에만 저장됩니다.
+          발급: <a href="https://aistudio.google.com/app/apikey" class="text-cyber underline" target="_blank">aistudio.google.com</a>
+        </p>
+      </div>
+
+      <!-- Chat container -->
+      <div class="card flex flex-col" style="height: calc(100vh - 320px); min-height: 400px;">
+        <div id="ai-messages" class="flex-1 overflow-y-auto space-y-3 mb-3">
+          <div class="chat-msg-bot">
+            <span class="text-cyber">[AI-CFO]</span> Initializing AI-CFO Kernel... [OK]<br>
+            안녕하세요. 저는 TT 포트폴리오의 전문 AI-CFO입니다. 투자 분석, 리스크 평가, 종목 질문 등 무엇이든 물어보세요.
+          </div>
+        </div>
+        <div class="flex gap-2 pt-2 border-t border-matrix/20">
+          <input id="ai-input" type="text" placeholder=">> 명령 입력..." class="terminal-input flex-1" disabled>
+          <button id="ai-send-btn" class="btn-primary" disabled>전송</button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ══ LOADING OVERLAY ═══════════════════════════════════════════════ -->
+  <div id="loading-overlay" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+    <div class="text-center">
+      <div class="text-matrix text-4xl mb-4 pulse-matrix">⬛</div>
+      <div class="text-matrix text-sm" id="loading-msg">데이터 로딩 중...</div>
+      <div class="progress-bar mt-3 w-48 mx-auto"></div>
+    </div>
+  </div>
+
+  <!-- ══ SCRIPTS ══════════════════════════════════════════════════════ -->
+  <script type="module" src="js/config.js"></script>
+  <script type="module" src="js/api.js"></script>
+  <script type="module" src="js/portfolio.js"></script>
+  <script type="module" src="js/technical.js"></script>
+  <script type="module" src="js/macro.js"></script>
+  <script type="module" src="js/models.js"></script>
+  <script type="module" src="js/ai.js"></script>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
