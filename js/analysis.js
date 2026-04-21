@@ -358,6 +358,7 @@ export async function runAnalysis(stockName) {
     { x: dates, y: closes, mode: 'lines', name: '주가',  line: { color: '#09090b', width: 2 } },
   ], {
     ...DARK_LAYOUT,
+    height: 288,
     yaxis: { ...DARK_LAYOUT.yaxis, title: '주가' },
     margin: { l: 60, r: 20, t: 10, b: 40 },
   }, PLOTLY_CONFIG);
@@ -416,6 +417,7 @@ export async function runAnalysis(stockName) {
       mode: 'lines', showlegend: false, line: { color: '#d1d5db', dash: 'dot', width: 1 } },
   ], {
     ...DARK_LAYOUT,
+    height: 288,
     yaxis: { ...DARK_LAYOUT.yaxis, title: '주가' },
     margin: { l: 60, r: 20, t: 10, b: 40 },
   }, PLOTLY_CONFIG);
