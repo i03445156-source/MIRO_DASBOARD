@@ -341,7 +341,7 @@ export async function runAnalysis(stockName) {
     }
   }
 
-  // ── 200일 주가 차트 + RSI — requestAnimationFrame으로 레이아웃 완료 후 렌더 ──
+  // ── 200일 주가 차트 + RSI ─────────────────────────────────────────
   const bbFill = {
     x: [...dates, ...dates.slice().reverse()],
     y: [...bbUp.map(v => v ?? null), ...bbLow.slice().reverse().map(v => v ?? null)],
@@ -349,36 +349,33 @@ export async function runAnalysis(stockName) {
     line: { color: 'transparent' }, hoverinfo: 'skip', showlegend: false,
   };
 
-  await new Promise(resolve => requestAnimationFrame(() => {
-    Plotly.newPlot('chart-ana-price', [
-      bbFill,
-      { x: dates, y: bbUp,   mode: 'lines', name: 'BB상단', line: { color: 'rgba(100,116,139,0.4)', width: 0.8, dash: 'dot' } },
-      { x: dates, y: bbLow,  mode: 'lines', name: 'BB하단', line: { color: 'rgba(100,116,139,0.4)', width: 0.8, dash: 'dot' } },
-      { x: dates, y: ma20,   mode: 'lines', name: 'MA20',  line: { color: '#94a3b8', width: 1.2 } },
-      { x: dates, y: ma60,   mode: 'lines', name: 'MA60',  line: { color: '#64748b', width: 1.4 } },
-      { x: dates, y: ma200,  mode: 'lines', name: 'MA200', line: { color: '#1e293b', width: 2, dash: 'dash' } },
-      { x: dates, y: closes, mode: 'lines', name: '주가',  line: { color: '#09090b', width: 2 } },
-    ], {
-      ...DARK_LAYOUT,
-      height: 288,
-      yaxis: { ...DARK_LAYOUT.yaxis, title: '주가' },
-      margin: { l: 60, r: 20, t: 10, b: 40 },
-    }, PLOTLY_CONFIG);
+  Plotly.newPlot('chart-ana-price', [
+    bbFill,
+    { x: dates, y: bbUp,   mode: 'lines', name: 'BB상단', line: { color: 'rgba(100,116,139,0.4)', width: 0.8, dash: 'dot' } },
+    { x: dates, y: bbLow,  mode: 'lines', name: 'BB하단', line: { color: 'rgba(100,116,139,0.4)', width: 0.8, dash: 'dot' } },
+    { x: dates, y: ma20,   mode: 'lines', name: 'MA20',  line: { color: '#94a3b8', width: 1.2 } },
+    { x: dates, y: ma60,   mode: 'lines', name: 'MA60',  line: { color: '#64748b', width: 1.4 } },
+    { x: dates, y: ma200,  mode: 'lines', name: 'MA200', line: { color: '#1e293b', width: 2, dash: 'dash' } },
+    { x: dates, y: closes, mode: 'lines', name: '주가',  line: { color: '#09090b', width: 2 } },
+  ], {
+    ...DARK_LAYOUT,
+    height: 288,
+    yaxis: { ...DARK_LAYOUT.yaxis, title: '주가' },
+    margin: { l: 60, r: 20, t: 10, b: 40 },
+  }, PLOTLY_CONFIG);
 
-    Plotly.newPlot('chart-ana-rsi', [
-      { x: dates, y: rsi, mode: 'lines', name: 'RSI(14)', line: { color: '#2563eb', width: 1.5 } },
-    ], {
-      ...DARK_LAYOUT,
-      shapes: [
-        { type: 'line', x0: dates[0], x1: dates[dates.length - 1], y0: 70, y1: 70, line: { color: '#dc2626', dash: 'dash', width: 1 } },
-        { type: 'line', x0: dates[0], x1: dates[dates.length - 1], y0: 30, y1: 30, line: { color: '#16a34a', dash: 'dash', width: 1 } },
-      ],
-      yaxis: { ...DARK_LAYOUT.yaxis, title: 'RSI', range: [0, 100] },
-      margin: { l: 60, r: 20, t: 8, b: 35 },
-      height: 160,
-    }, PLOTLY_CONFIG);
-    resolve();
-  }));
+  Plotly.newPlot('chart-ana-rsi', [
+    { x: dates, y: rsi, mode: 'lines', name: 'RSI(14)', line: { color: '#2563eb', width: 1.5 } },
+  ], {
+    ...DARK_LAYOUT,
+    shapes: [
+      { type: 'line', x0: dates[0], x1: dates[dates.length - 1], y0: 70, y1: 70, line: { color: '#dc2626', dash: 'dash', width: 1 } },
+      { type: 'line', x0: dates[0], x1: dates[dates.length - 1], y0: 30, y1: 30, line: { color: '#16a34a', dash: 'dash', width: 1 } },
+    ],
+    yaxis: { ...DARK_LAYOUT.yaxis, title: 'RSI', range: [0, 100] },
+    margin: { l: 60, r: 20, t: 8, b: 35 },
+    height: 160,
+  }, PLOTLY_CONFIG);
 
   // ── 4개 모델 예측 ─────────────────────────────────────────────────
   setStatus('예측 모델 실행 중...');
@@ -405,28 +402,33 @@ export async function runAnalysis(stockName) {
   const anchor = [dates[dates.length - 1]];
   const aprice = [lastClose];
 
-  await new Promise(resolve => requestAnimationFrame(() => {
-    Plotly.newPlot('chart-ana-pred', [
-      { x: hDates, y: hClose, mode: 'lines', name: '실제 주가', line: { color: '#09090b', width: 2 } },
-      { x: anchor.concat(fcDates), y: aprice.concat(arima), mode: 'lines', name: 'ARIMA',
-        line: { color: '#2563eb', width: 2, dash: 'solid' } },
-      { x: anchor.concat(fcDates), y: aprice.concat(lstm), mode: 'lines', name: 'LSTM',
-        line: { color: '#16a34a', width: 2, dash: 'dash' } },
-      { x: anchor.concat(fcDates), y: aprice.concat(trans), mode: 'lines', name: 'Transformer',
-        line: { color: '#d97706', width: 2, dash: 'dot' } },
-      { x: anchor.concat(fcDates), y: aprice.concat(prop), mode: 'lines', name: 'Prophet',
-        line: { color: '#7c3aed', width: 2, dash: 'dashdot' } },
-      { x: [dates[dates.length - 1], dates[dates.length - 1]],
-        y: [Math.min(...hClose) * 0.96, Math.max(...hClose) * 1.04],
-        mode: 'lines', showlegend: false, line: { color: '#d1d5db', dash: 'dot', width: 1 } },
-    ], {
-      ...DARK_LAYOUT,
-      height: 288,
-      yaxis: { ...DARK_LAYOUT.yaxis, title: '주가' },
-      margin: { l: 60, r: 20, t: 10, b: 40 },
-    }, PLOTLY_CONFIG);
-    resolve();
-  }));
+  Plotly.newPlot('chart-ana-pred', [
+    { x: hDates, y: hClose, mode: 'lines', name: '실제 주가', line: { color: '#09090b', width: 2 } },
+    { x: anchor.concat(fcDates), y: aprice.concat(arima), mode: 'lines', name: 'ARIMA',
+      line: { color: '#2563eb', width: 2, dash: 'solid' } },
+    { x: anchor.concat(fcDates), y: aprice.concat(lstm), mode: 'lines', name: 'LSTM',
+      line: { color: '#16a34a', width: 2, dash: 'dash' } },
+    { x: anchor.concat(fcDates), y: aprice.concat(trans), mode: 'lines', name: 'Transformer',
+      line: { color: '#d97706', width: 2, dash: 'dot' } },
+    { x: anchor.concat(fcDates), y: aprice.concat(prop), mode: 'lines', name: 'Prophet',
+      line: { color: '#7c3aed', width: 2, dash: 'dashdot' } },
+    { x: [dates[dates.length - 1], dates[dates.length - 1]],
+      y: [Math.min(...hClose) * 0.96, Math.max(...hClose) * 1.04],
+      mode: 'lines', showlegend: false, line: { color: '#d1d5db', dash: 'dot', width: 1 } },
+  ], {
+    ...DARK_LAYOUT,
+    height: 288,
+    yaxis: { ...DARK_LAYOUT.yaxis, title: '주가' },
+    margin: { l: 60, r: 20, t: 10, b: 40 },
+  }, PLOTLY_CONFIG);
+
+  // clipPath가 0-width로 렌더된 경우를 대비해 resize 강제 호출
+  setTimeout(() => {
+    ['chart-ana-price', 'chart-ana-rsi', 'chart-ana-pred'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el && window.Plotly) Plotly.Plots.resize(el);
+    });
+  }, 150);
 
   // ── AI 보고서 ─────────────────────────────────────────────────────
   setStatus('AI 보고서 생성 중...');

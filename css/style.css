@@ -283,7 +283,7 @@ body {
 .data-table tr:hover td { background: var(--bg); }
 
 /* ── Plotly overrides (light) ──────────────────────────────────────── */
-.js-plotly-plot .plotly rect.bg { fill: #ffffff !important; }
+/* bgcolor is set via layout.paper_bgcolor / plot_bgcolor — no CSS override needed */
 
 /* ── Signal Banners ────────────────────────────────────────────────── */
 .signal-buy {
