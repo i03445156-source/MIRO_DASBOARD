@@ -283,8 +283,7 @@ body {
 .data-table tr:hover td { background: var(--bg); }
 
 /* ── Plotly overrides (light) ──────────────────────────────────────── */
-.js-plotly-plot .plotly .bg { fill: #ffffff !important; }
-.js-plotly-plot .plotly .main-svg { background: #ffffff !important; }
+.js-plotly-plot .plotly rect.bg { fill: #ffffff !important; }
 
 /* ── Signal Banners ────────────────────────────────────────────────── */
 .signal-buy {
