@@ -221,7 +221,7 @@ async function loadDashboard() {
         type: 'bar',
         marker: {
           color: sorted.map(r => r.ret),
-          colorscale: [[0, '#FF3333'], [0.5, '#1a1a1a'], [1, '#00FF41']],
+          colorscale: [[0, '#444444'], [0.5, '#111111'], [1, '#ffffff']],
           cmin: Math.min(...sorted.map(r => r.ret)),
           cmax: Math.max(...sorted.map(r => r.ret)),
         },
