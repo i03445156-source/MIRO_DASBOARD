@@ -163,22 +163,22 @@ export const TICKER_NAME = {};  // 티커 → 이름
 
 // ── Plotly 공통 다크 레이아웃 ───────────────────────────────────────
 export const DARK_LAYOUT = {
-  paper_bgcolor: '#111111',
-  plot_bgcolor:  '#111111',
-  font:  { family: 'Fira Code, monospace', color: '#ffffff', size: 11 },
-  xaxis: { gridcolor: '#242424', zerolinecolor: '#242424', tickfont: { size: 10 } },
-  yaxis: { gridcolor: '#242424', zerolinecolor: '#242424', tickfont: { size: 10 } },
-  legend: { bgcolor: 'rgba(0,0,0,0)', bordercolor: '#242424', borderwidth: 1, font: { size: 10 } },
-  margin: { l: 50, r: 20, t: 20, b: 50 },
+  paper_bgcolor: '#ffffff',
+  plot_bgcolor:  '#fafafa',
+  font:  { family: 'Fira Code, monospace', color: '#09090b', size: 11 },
+  xaxis: { gridcolor: '#ebebeb', zerolinecolor: '#d4d4d8', tickfont: { size: 10 }, linecolor: '#e4e4e7' },
+  yaxis: { gridcolor: '#ebebeb', zerolinecolor: '#d4d4d8', tickfont: { size: 10 }, linecolor: '#e4e4e7' },
+  legend: { bgcolor: 'rgba(255,255,255,0.95)', bordercolor: '#e4e4e7', borderwidth: 1, font: { size: 10 } },
+  margin: { l: 55, r: 20, t: 20, b: 50 },
   hovermode: 'x unified',
-  hoverlabel: { bgcolor: '#1a1a1a', bordercolor: '#ffffff', font: { family: 'Fira Code', color: '#ffffff' } },
+  hoverlabel: { bgcolor: '#ffffff', bordercolor: '#09090b', font: { family: 'Fira Code', color: '#09090b', size: 11 } },
 };
 
 export const PLOTLY_CONFIG = { responsive: true, displayModeBar: false };
 
 export const COLORS = [
-  '#ffffff','#cccccc','#aaaaaa','#888888','#666666',
-  '#e8e8e8','#bbbbbb','#999999','#777777','#555555',
-  '#dddddd','#b0b0b0','#909090','#707070','#505050',
-  '#f0f0f0','#c0c0c0','#a0a0a0','#808080','#606060',
+  '#09090b','#2563eb','#16a34a','#dc2626','#d97706',
+  '#7c3aed','#0891b2','#9333ea','#e11d48','#65a30d',
+  '#3f3f46','#1d4ed8','#15803d','#b91c1c','#b45309',
+  '#6d28d9','#0e7490','#7e22ce','#be123c','#4d7c0f',
 ];

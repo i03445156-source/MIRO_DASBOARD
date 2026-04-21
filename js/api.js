@@ -44,34 +44,40 @@ export async function fetchClose(ticker, startDate, endDate = null) {
   return { dates: ohlc.dates, closes: ohlc.closes };
 }
 
-// ── 실제 Edge Function 호출 ─────────────────────────────────────────
+// ── 실제 Edge Function 호출 (Supabase → CORS 프록시 순서로 시도) ──────
 async function _fetchViaProxy(ticker, period1, period2, interval) {
-  const headers = {
-    'Content-Type': 'application/json',
-    ...(SUPABASE_ANON_KEY && SUPABASE_ANON_KEY !== 'YOUR_ANON_KEY'
-      ? { 'Authorization': `Bearer ${SUPABASE_ANON_KEY}`, 'apikey': SUPABASE_ANON_KEY }
-      : {}),
-  };
+  const yahooUrl = `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?period1=${period1}&period2=${period2}&interval=${interval}&events=div,splits`;
 
-  // Supabase 미설정 → Yahoo Finance 직접 시도 (CORS 허용 여부에 따라)
-  const useProxy = SUPABASE_ANON_KEY && SUPABASE_ANON_KEY !== 'YOUR_ANON_KEY';
-
-  let raw;
-  if (useProxy) {
-    const resp = await fetch(STOCK_PROXY_URL, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ ticker, period1, period2, interval }),
-    });
-    raw = await resp.json();
-  } else {
-    // 직접 Yahoo Finance 시도 (일부 환경에서 CORS 문제 발생 가능)
-    const url = `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?period1=${period1}&period2=${period2}&interval=${interval}&events=div,splits`;
-    const resp = await fetch(url, { headers: { 'Accept': 'application/json' } });
-    raw = await resp.json();
+  // 1. Supabase Edge Function 시도
+  if (SUPABASE_ANON_KEY && !SUPABASE_ANON_KEY.startsWith('YOUR_')) {
+    try {
+      const resp = await fetch(STOCK_PROXY_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'apikey': SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify({ ticker, period1, period2, interval }),
+        signal: AbortSignal.timeout(8000),
+      });
+      if (resp.ok) return _parseYahoo(await resp.json());
+    } catch {}
   }
 
-  return _parseYahoo(raw);
+  // 2. corsproxy.io fallback
+  try {
+    const resp = await fetch(`https://corsproxy.io/?url=${encodeURIComponent(yahooUrl)}`, {
+      signal: AbortSignal.timeout(10000),
+    });
+    if (resp.ok) return _parseYahoo(await resp.json());
+  } catch {}
+
+  // 3. allorigins fallback
+  const resp = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(yahooUrl)}`, {
+    signal: AbortSignal.timeout(12000),
+  });
+  return _parseYahoo(await resp.json());
 }
 
 function _parseYahoo(raw) {

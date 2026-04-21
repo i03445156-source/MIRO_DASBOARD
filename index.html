@@ -14,12 +14,12 @@
       theme: {
         extend: {
           colors: {
-            matrix: '#ffffff',
-            cyber: '#aaaaaa',
-            gold: '#ffffff',
-            crimson: '#888888',
-            panel: '#111111',
-            border: '#242424',
+            matrix:  '#09090b',
+            cyber:   '#52525b',
+            gold:    '#d97706',
+            crimson: '#dc2626',
+            panel:   '#ffffff',
+            border:  '#e4e4e7',
           },
           fontFamily: { mono: ['Fira Code', 'monospace'] }
         }
@@ -27,77 +27,34 @@
     }
   </script>
 </head>
-<body class="bg-black text-matrix font-mono min-h-screen overflow-x-hidden">
+<body class="font-mono min-h-screen overflow-x-hidden" style="background:#f4f4f5;color:#09090b">
 
   <!-- ══ HEADER ══════════════════════════════════════════════════════════ -->
-  <header class="border-b border-white/10 px-6 py-3 flex items-center justify-between sticky top-0 z-50 bg-black/95 backdrop-blur">
-    <h1 class="text-2xl font-bold tracking-widest text-white">MIRO</h1>
-    <div class="flex items-center gap-5 text-xs text-white/35">
-      <span><span id="hdr-krx" class="text-white/60">--</span> KRX</span>
-      <span><span id="hdr-nyse" class="text-white/60">--</span> NYSE</span>
-      <span id="hdr-date" class="hidden sm:inline"></span>
+  <header class="border-b border-border px-6 py-3 flex items-center justify-between sticky top-0 z-50 bg-white/95 backdrop-blur">
+    <h1 class="text-2xl font-bold tracking-widest text-matrix">MIRO</h1>
+    <div class="flex items-center gap-5 text-xs text-cyber">
+      <span><span id="hdr-krx">--</span> KRX</span>
+      <span><span id="hdr-nyse">--</span> NYSE</span>
+      <span id="hdr-date" class="hidden sm:inline text-matrix/40"></span>
     </div>
   </header>
 
   <!-- ══ NAV TABS ════════════════════════════════════════════════════════ -->
-  <nav class="border-b border-matrix/20 bg-panel overflow-x-auto">
+  <nav class="border-b border-border bg-panel overflow-x-auto">
     <div class="flex min-w-max" id="nav-tabs">
-      <button class="tab-btn active" data-tab="dashboard">📊 대시보드</button>
-      <button class="tab-btn" data-tab="returns">📈 수익률</button>
-      <button class="tab-btn" data-tab="risk">🛡️ 리스크</button>
-      <button class="tab-btn" data-tab="portfolio">🎯 포트폴리오</button>
-      <button class="tab-btn" data-tab="analysis">🔍 종목분석</button>
-      <button class="tab-btn" data-tab="macro">🌐 매크로</button>
-      <button class="tab-btn" data-tab="ai">🤖 AI-CFO</button>
+      <button class="tab-btn active" data-tab="analysis">종목분석</button>
+      <button class="tab-btn" data-tab="returns">수익률</button>
+      <button class="tab-btn" data-tab="risk">리스크</button>
+      <button class="tab-btn" data-tab="portfolio">포트폴리오</button>
+      <button class="tab-btn" data-tab="macro">매크로</button>
+      <button class="tab-btn" data-tab="ai">AI-CFO</button>
     </div>
   </nav>
 
   <!-- ══ MAIN CONTENT ════════════════════════════════════════════════════ -->
   <main class="p-4 md:p-6">
 
-    <!-- ─── 1. DASHBOARD ──────────────────────────────────────────────── -->
-    <section id="tab-dashboard" class="tab-content">
-      <div class="section-header">
-        <span class="text-cyber">//</span> 포트폴리오 대시보드
-        <span class="text-matrix/40 text-xs ml-2">실시간 현황</span>
-      </div>
-
-      <!-- KPI Row -->
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6" id="kpi-row">
-        <div class="kpi-card">
-          <div class="kpi-label">전체 수익률</div>
-          <div class="kpi-value" id="kpi-total-return">--</div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-label">최고 수익 종목</div>
-          <div class="kpi-value text-matrix" id="kpi-top-stock">--</div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-label">최저 수익 종목</div>
-          <div class="kpi-value text-crimson" id="kpi-bot-stock">--</div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-label">포트폴리오 수</div>
-          <div class="kpi-value text-cyber" id="kpi-members">--</div>
-        </div>
-      </div>
-
-      <!-- Member cards grid -->
-      <div class="section-header mb-3">
-        <span class="text-cyber">//</span> 멤버별 수익률 현황
-      </div>
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 mb-6" id="member-cards">
-        <div class="card text-matrix/40 text-center py-8">데이터 로딩 중...</div>
-      </div>
-
-      <!-- Mini chart -->
-      <div class="card">
-        <div class="card-title">전체 수익률 히트맵 (기준일: 2026-03-13)</div>
-        <div id="chart-heatmap" class="h-64"></div>
-      </div>
-    </section>
-
-    <!-- ─── 2. RETURNS ─────────────────────────────────────────────────── -->
+    <!-- ─── 1. RETURNS ─────────────────────────────────────────────────── -->
     <section id="tab-returns" class="tab-content hidden">
       <div class="section-header">
         <span class="text-cyber">//</span> 수익률 추적기
@@ -227,36 +184,63 @@
       </div>
     </section>
 
-    <!-- ─── 5. STOCK ANALYSIS ────────────────────────────────────────── -->
-    <section id="tab-analysis" class="tab-content hidden">
-      <div class="section-header">
-        <span class="text-cyber">//</span> 종목 분석
-        <span class="text-matrix/40 text-xs ml-2">200일 차트 · 기술지표 · 4모델 예측 · AI 보고서</span>
-      </div>
+    <!-- ─── STOCK ANALYSIS (메인 페이지) ─────────────────────────────── -->
+    <section id="tab-analysis" class="tab-content">
 
       <!-- 종목 선택 -->
       <div class="flex flex-wrap gap-3 mb-6 items-center">
-        <div class="flex items-center gap-2">
-          <label class="text-xs text-matrix/60">종목</label>
-          <select id="ana-stock" class="terminal-select min-w-56"></select>
-        </div>
-        <button id="ana-run-btn" class="btn-primary">▶ 분석 시작</button>
-        <div id="ana-status" class="text-xs text-matrix/40 self-center"></div>
+        <select id="ana-stock" class="terminal-select min-w-56"></select>
+        <button id="ana-run-btn" class="btn-primary">분석 시작</button>
+        <div id="ana-status" class="text-xs text-cyber self-center"></div>
       </div>
 
-      <!-- 200일 주가 차트 -->
+      <!-- ① 예측 모델 결과 (최상단) -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+        <div class="kpi-card">
+          <div class="kpi-label">ARIMA (30일)</div>
+          <div class="kpi-value" id="pred-arima">--</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">LSTM (30일)</div>
+          <div class="kpi-value" id="pred-lstm">--</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Transformer (30일)</div>
+          <div class="kpi-value" id="pred-trans">--</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Prophet (30일)</div>
+          <div class="kpi-value" id="pred-prop">--</div>
+        </div>
+      </div>
+
+      <!-- ② 예측 비교 차트 -->
+      <div class="card mb-4">
+        <div class="card-title">30일 예측 — ARIMA · LSTM · Transformer · Prophet</div>
+        <div id="chart-ana-pred" class="h-72"></div>
+      </div>
+
+      <!-- ③ AI 보고서 -->
+      <div class="card mb-6">
+        <div class="card-title">AI 투자 분석 보고서</div>
+        <div id="ana-report-content" class="text-cyber text-sm leading-relaxed py-2">
+          종목을 선택하고 분석을 시작하면 AI가 종합 투자 보고서를 작성합니다.
+        </div>
+      </div>
+
+      <!-- ④ 200일 주가 차트 -->
       <div class="card mb-3">
         <div class="card-title">200일 주가 — MA20 · MA60 · MA200 · 볼린저밴드</div>
-        <div id="chart-ana-price" class="h-80"></div>
+        <div id="chart-ana-price" class="h-72"></div>
       </div>
 
-      <!-- RSI -->
+      <!-- ⑤ RSI -->
       <div class="card mb-4">
         <div class="card-title">RSI (14)</div>
-        <div id="chart-ana-rsi" class="h-36"></div>
+        <div id="chart-ana-rsi" class="h-32"></div>
       </div>
 
-      <!-- 기술적 지표 KPI -->
+      <!-- ⑥ 기술적 지표 KPI -->
       <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-3">
         <div class="kpi-card">
           <div class="kpi-label">현재가</div>
@@ -280,42 +264,9 @@
         </div>
       </div>
 
-      <!-- 그랜빌 신호 배너 -->
-      <div id="ana-signal-banner" class="hidden mb-4 p-3 border rounded text-sm"></div>
+      <!-- 그랜빌 배너 -->
+      <div id="ana-signal-banner" class="hidden p-3 border rounded text-sm"></div>
 
-      <!-- 예측 모델 차트 -->
-      <div class="card mb-3">
-        <div class="card-title">30일 예측 모델 비교 — ARIMA · LSTM · Transformer · Prophet</div>
-        <div id="chart-ana-pred" class="h-72"></div>
-      </div>
-
-      <!-- 예측 모델 KPI -->
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        <div class="kpi-card">
-          <div class="kpi-label">ARIMA (30일)</div>
-          <div class="kpi-value text-sm" id="pred-arima">--</div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-label">LSTM (30일)</div>
-          <div class="kpi-value text-sm" id="pred-lstm">--</div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-label">Transformer (30일)</div>
-          <div class="kpi-value text-sm" id="pred-trans">--</div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-label">Prophet (30일)</div>
-          <div class="kpi-value text-sm" id="pred-prop">--</div>
-        </div>
-      </div>
-
-      <!-- AI 보고서 -->
-      <div class="card">
-        <div class="card-title">🤖 AI 투자 분석 보고서</div>
-        <div id="ana-report-content" class="text-white/30 text-sm leading-relaxed">
-          종목을 선택하고 분석을 시작하면 AI가 종합 투자 보고서를 작성합니다.
-        </div>
-      </div>
     </section>
 
     <!-- ─── 7. MACRO ──────────────────────────────────────────────────── -->

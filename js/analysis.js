@@ -345,17 +345,17 @@ export async function runAnalysis(stockName) {
   const bbFill = {
     x: [...dates, ...dates.slice().reverse()],
     y: [...bbUp.map(v => v ?? null), ...bbLow.slice().reverse().map(v => v ?? null)],
-    fill: 'toself', fillcolor: 'rgba(255,255,255,0.025)',
+    fill: 'toself', fillcolor: 'rgba(37,99,235,0.05)',
     line: { color: 'transparent' }, hoverinfo: 'skip', showlegend: false,
   };
   Plotly.newPlot('chart-ana-price', [
     bbFill,
-    { x: dates, y: bbUp,   mode: 'lines', name: 'BB상단', line: { color: 'rgba(160,160,160,0.4)', width: 0.7, dash: 'dot' } },
-    { x: dates, y: bbLow,  mode: 'lines', name: 'BB하단', line: { color: 'rgba(160,160,160,0.4)', width: 0.7, dash: 'dot' } },
-    { x: dates, y: ma20,   mode: 'lines', name: 'MA20',  line: { color: '#aaaaaa', width: 1 } },
-    { x: dates, y: ma60,   mode: 'lines', name: 'MA60',  line: { color: '#777777', width: 1.2 } },
-    { x: dates, y: ma200,  mode: 'lines', name: 'MA200', line: { color: '#dddddd', width: 2, dash: 'dash' } },
-    { x: dates, y: closes, mode: 'lines', name: '주가',  line: { color: '#ffffff', width: 1.8 } },
+    { x: dates, y: bbUp,   mode: 'lines', name: 'BB상단', line: { color: 'rgba(100,116,139,0.4)', width: 0.8, dash: 'dot' } },
+    { x: dates, y: bbLow,  mode: 'lines', name: 'BB하단', line: { color: 'rgba(100,116,139,0.4)', width: 0.8, dash: 'dot' } },
+    { x: dates, y: ma20,   mode: 'lines', name: 'MA20',  line: { color: '#94a3b8', width: 1.2 } },
+    { x: dates, y: ma60,   mode: 'lines', name: 'MA60',  line: { color: '#64748b', width: 1.4 } },
+    { x: dates, y: ma200,  mode: 'lines', name: 'MA200', line: { color: '#1e293b', width: 2, dash: 'dash' } },
+    { x: dates, y: closes, mode: 'lines', name: '주가',  line: { color: '#09090b', width: 2 } },
   ], {
     ...DARK_LAYOUT,
     yaxis: { ...DARK_LAYOUT.yaxis, title: '주가' },
@@ -364,12 +364,12 @@ export async function runAnalysis(stockName) {
 
   // ── RSI 차트 ──────────────────────────────────────────────────────
   Plotly.newPlot('chart-ana-rsi', [
-    { x: dates, y: rsi, mode: 'lines', name: 'RSI(14)', line: { color: '#aaaaaa', width: 1.5 } },
+    { x: dates, y: rsi, mode: 'lines', name: 'RSI(14)', line: { color: '#2563eb', width: 1.5 } },
   ], {
     ...DARK_LAYOUT,
     shapes: [
-      { type: 'line', x0: dates[0], x1: dates[dates.length - 1], y0: 70, y1: 70, line: { color: '#777', dash: 'dash', width: 1 } },
-      { type: 'line', x0: dates[0], x1: dates[dates.length - 1], y0: 30, y1: 30, line: { color: '#ccc', dash: 'dash', width: 1 } },
+      { type: 'line', x0: dates[0], x1: dates[dates.length - 1], y0: 70, y1: 70, line: { color: '#dc2626', dash: 'dash', width: 1 } },
+      { type: 'line', x0: dates[0], x1: dates[dates.length - 1], y0: 30, y1: 30, line: { color: '#16a34a', dash: 'dash', width: 1 } },
     ],
     yaxis: { ...DARK_LAYOUT.yaxis, title: 'RSI', range: [0, 100] },
     margin: { l: 60, r: 20, t: 8, b: 35 },
@@ -402,19 +402,18 @@ export async function runAnalysis(stockName) {
   const aprice = [lastClose];
 
   Plotly.newPlot('chart-ana-pred', [
-    { x: hDates, y: hClose, mode: 'lines', name: '실제 주가', line: { color: '#ffffff', width: 2 } },
+    { x: hDates, y: hClose, mode: 'lines', name: '실제 주가', line: { color: '#09090b', width: 2 } },
     { x: anchor.concat(fcDates), y: aprice.concat(arima), mode: 'lines', name: 'ARIMA',
-      line: { color: '#ffffff', width: 1.5, dash: 'solid' } },
+      line: { color: '#2563eb', width: 2, dash: 'solid' } },
     { x: anchor.concat(fcDates), y: aprice.concat(lstm), mode: 'lines', name: 'LSTM',
-      line: { color: '#aaaaaa', width: 1.5, dash: 'dash' } },
+      line: { color: '#16a34a', width: 2, dash: 'dash' } },
     { x: anchor.concat(fcDates), y: aprice.concat(trans), mode: 'lines', name: 'Transformer',
-      line: { color: '#888888', width: 1.5, dash: 'dot' } },
+      line: { color: '#d97706', width: 2, dash: 'dot' } },
     { x: anchor.concat(fcDates), y: aprice.concat(prop), mode: 'lines', name: 'Prophet',
-      line: { color: '#cccccc', width: 1.5, dash: 'dashdot' } },
-    // 현재가 구분선
+      line: { color: '#7c3aed', width: 2, dash: 'dashdot' } },
     { x: [dates[dates.length - 1], dates[dates.length - 1]],
       y: [Math.min(...hClose) * 0.96, Math.max(...hClose) * 1.04],
-      mode: 'lines', showlegend: false, line: { color: '#444', dash: 'dot', width: 1 } },
+      mode: 'lines', showlegend: false, line: { color: '#d1d5db', dash: 'dot', width: 1 } },
   ], {
     ...DARK_LAYOUT,
     yaxis: { ...DARK_LAYOUT.yaxis, title: '주가' },

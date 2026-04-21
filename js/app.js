@@ -3,8 +3,7 @@
 // ══════════════════════════════════════════════════════════════════════
 
 import { MEMBERS, ALL_STOCKS, BASE_DATE, COLORS, DARK_LAYOUT, PLOTLY_CONFIG } from './config.js';
-import { fetchMultiClose, fetchLatestPrices } from './api.js';
-import { loadReturns, runRiskAnalysis, runPortfolioOptimization, cumReturns, pctReturns } from './portfolio.js';
+import { loadReturns, runRiskAnalysis, runPortfolioOptimization } from './portfolio.js';
 import { runAnalysis } from './analysis.js';
 import { loadMacroTab } from './macro.js';
 import { initAI } from './ai.js';
@@ -22,7 +21,6 @@ document.addEventListener('DOMContentLoaded', () => {
   initPortfolioTab();
   initAnalysisTab();
   initAI();
-  loadDashboard();
 });
 
 // ══════════════════════════════════════════════════════════════════════
@@ -43,12 +41,12 @@ function initHeader() {
     if (krxEl) {
       const open = dow >= 1 && dow <= 5 && totalMin >= 540 && totalMin < 930;
       krxEl.textContent = open ? 'OPEN' : 'CLOSED';
-      krxEl.className   = open ? 'text-white' : 'text-white/30';
+      krxEl.style.color = open ? '#16a34a' : '#a1a1aa';
     }
     if (nyseEl) {
       const open = dow >= 1 && dow <= 5 && (totalMin >= 1410 || totalMin < 360);
       nyseEl.textContent = open ? 'OPEN' : 'CLOSED';
-      nyseEl.className   = open ? 'text-white' : 'text-white/30';
+      nyseEl.style.color = open ? '#16a34a' : '#a1a1aa';
     }
   }
   tick();
@@ -100,8 +98,15 @@ function populateSelects() {
   // 포트폴리오 탭 - 종목 멀티셀렉트 (기본값 4개)
   fillSelect('port-stocks', stockNames.map(n => ({ value: n, label: `${n} (${ALL_STOCKS[n]})` })), true, ['삼성전자', '기아', 'NAVER', 'QQQ']);
 
-  // 종목분석 탭 - 전체 종목 드롭다운
-  fillSelect('ana-stock', stockNames.map(n => ({ value: n, label: `${n} (${ALL_STOCKS[n]})` })));
+  // 종목분석 탭 - 전체 종목 드롭다운 + 기본 종목 자동 로드
+  fillSelect('ana-stock', stockNames.map(n => ({ value: n, label: `${n}  (${ALL_STOCKS[n]})` })));
+  const defaultStock = stockNames.includes('삼성전자') ? '삼성전자' : stockNames[0];
+  if (defaultStock) {
+    const el = document.getElementById('ana-stock');
+    if (el) el.value = defaultStock;
+    showLoading(`${defaultStock} 분석 중...`);
+    runAnalysis(defaultStock).catch(console.error).finally(hideLoading);
+  }
 }
 
 function fillSelect(id, items, isMulti = false, defaults = []) {
@@ -112,103 +117,6 @@ function fillSelect(id, items, isMulti = false, defaults = []) {
   ).join('');
 }
 
-// ══════════════════════════════════════════════════════════════════════
-//  대시보드 탭 — 전체 현황 로드
-// ══════════════════════════════════════════════════════════════════════
-
-async function loadDashboard() {
-  showLoading('대시보드 데이터 로딩 중...');
-  try {
-    // 전체 종목 최신가 + 기준일 가격
-    const allTickers  = Object.values(ALL_STOCKS);
-    const multiData   = await fetchMultiClose(Object.values(ALL_STOCKS).slice(0, 30), BASE_DATE);
-
-    // 멤버 카드 렌더링
-    const memberCardsEl = document.getElementById('member-cards');
-    memberCardsEl.innerHTML = '';
-    let allReturns = [];
-
-    Object.entries(MEMBERS).forEach(([member, stocks]) => {
-      const card = document.createElement('div');
-      card.className = 'member-card';
-
-      let memberRetSum = 0, memberCount = 0;
-      let stockRows = '';
-
-      Object.entries(stocks).forEach(([name, ticker]) => {
-        const d = multiData[ticker];
-        if (!d || !d.closes.length) {
-          stockRows += `<div class="stock-row"><span>${name}</span><span class="text-matrix/30">N/A</span></div>`;
-          return;
-        }
-        const validCloses = d.closes.filter(v => v !== null);
-        if (validCloses.length < 2) return;
-        const ret = ((validCloses[validCloses.length - 1] - validCloses[0]) / validCloses[0]) * 100;
-        const cls = ret >= 0 ? 'ret-pos' : 'ret-neg';
-        const sign = ret >= 0 ? '+' : '';
-        stockRows += `<div class="stock-row"><span>${name}</span><span class="${cls}">${sign}${ret.toFixed(1)}%</span></div>`;
-        memberRetSum += ret; memberCount++;
-        allReturns.push({ name, ticker, ret, member });
-      });
-
-      const memberAvg = memberCount ? memberRetSum / memberCount : 0;
-      const avgCls = memberAvg >= 0 ? 'text-matrix' : 'text-crimson';
-      const avgSign = memberAvg >= 0 ? '+' : '';
-
-      card.innerHTML = `
-        <div class="member-name">👤 ${member}</div>
-        <div class="text-xs ${avgCls} mb-2">평균: ${avgSign}${memberAvg.toFixed(1)}%</div>
-        ${stockRows}
-      `;
-      memberCardsEl.appendChild(card);
-    });
-
-    // KPI 업데이트
-    if (allReturns.length) {
-      const totalAvg = allReturns.reduce((s, r) => s + r.ret, 0) / allReturns.length;
-      const top      = [...allReturns].sort((a, b) => b.ret - a.ret)[0];
-      const bot      = [...allReturns].sort((a, b) => a.ret - b.ret)[0];
-
-      const setKPI = (id, val, cls) => {
-        const el = document.getElementById(id);
-        if (el) { el.textContent = val; if (cls) el.className = `kpi-value ${cls}`; }
-      };
-      setKPI('kpi-total-return', `${totalAvg >= 0 ? '+' : ''}${totalAvg.toFixed(2)}%`, totalAvg >= 0 ? 'text-matrix' : 'text-crimson');
-      setKPI('kpi-top-stock', `${top.name} +${top.ret.toFixed(1)}%`);
-      setKPI('kpi-bot-stock', `${bot.name} ${bot.ret.toFixed(1)}%`);
-      setKPI('kpi-members', Object.keys(MEMBERS).length + '명');
-
-      // 히트맵 (전종목 수익률)
-      const sorted = [...allReturns].sort((a, b) => b.ret - a.ret).slice(0, 25);
-      Plotly.newPlot('chart-heatmap', [{
-        x: sorted.map(r => r.name),
-        y: sorted.map(r => r.ret),
-        type: 'bar',
-        marker: {
-          color: sorted.map(r => r.ret),
-          colorscale: [[0, '#444444'], [0.5, '#111111'], [1, '#ffffff']],
-          cmin: Math.min(...sorted.map(r => r.ret)),
-          cmax: Math.max(...sorted.map(r => r.ret)),
-        },
-        text: sorted.map(r => `${r.ret.toFixed(1)}%`),
-        textposition: 'outside',
-        textfont: { size: 9 },
-      }], {
-        ...DARK_LAYOUT,
-        yaxis: { ...DARK_LAYOUT.yaxis, title: '수익률 (%)' },
-        margin: { l: 50, r: 20, t: 20, b: 80 },
-        xaxis: { ...DARK_LAYOUT.xaxis, tickangle: -35, tickfont: { size: 9 } },
-      }, PLOTLY_CONFIG);
-    }
-
-  } catch (e) {
-    console.error('[dashboard] load error:', e);
-    document.getElementById('member-cards').innerHTML =
-      `<div class="card text-crimson text-xs">데이터 로드 실패: ${e.message}<br>Supabase Edge Function 설정 확인 필요</div>`;
-  } finally {
-    hideLoading();
-  }
-}
 
 // ══════════════════════════════════════════════════════════════════════
 //  수익률 탭
