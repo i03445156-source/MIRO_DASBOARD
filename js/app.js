@@ -5,8 +5,7 @@
 import { MEMBERS, ALL_STOCKS, BASE_DATE, COLORS, DARK_LAYOUT, PLOTLY_CONFIG } from './config.js';
 import { fetchMultiClose, fetchLatestPrices } from './api.js';
 import { loadReturns, runRiskAnalysis, runPortfolioOptimization, cumReturns, pctReturns } from './portfolio.js';
-import { runTechnicalAnalysis } from './technical.js';
-import { runPredictionModel } from './models.js';
+import { runAnalysis } from './analysis.js';
 import { loadMacroTab } from './macro.js';
 import { initAI } from './ai.js';
 
@@ -21,10 +20,9 @@ document.addEventListener('DOMContentLoaded', () => {
   initReturnTab();
   initRiskTab();
   initPortfolioTab();
-  initTechnicalTab();
-  initModelsTab();
+  initAnalysisTab();
   initAI();
-  loadDashboard();           // 첫 화면 데이터 로드
+  loadDashboard();
 });
 
 // ══════════════════════════════════════════════════════════════════════
@@ -112,17 +110,8 @@ function populateSelects() {
   // 포트폴리오 탭 - 종목 멀티셀렉트 (기본값 4개)
   fillSelect('port-stocks', stockNames.map(n => ({ value: n, label: `${n} (${ALL_STOCKS[n]})` })), true, ['삼성전자', '기아', 'NAVER', 'QQQ']);
 
-  // 기술분석 탭 - 멤버 + 종목
-  const taMemSel = document.getElementById('ta-member');
-  fillSelect('ta-member', [{ value: '__all__', label: '전체' }, ...memberNames.map(n => ({ value: n, label: n }))]);
-  taMemSel.addEventListener('change', () => updateTaStockSelect(taMemSel.value));
-  updateTaStockSelect('__all__');
-
-  // 예측 탭 - 멤버 + 종목
-  const modMemSel = document.getElementById('mod-member');
-  fillSelect('mod-member', [{ value: '__all__', label: '전체' }, ...memberNames.map(n => ({ value: n, label: n }))]);
-  modMemSel.addEventListener('change', () => updateModStockSelect(modMemSel.value));
-  updateModStockSelect('__all__');
+  // 종목분석 탭 - 전체 종목 드롭다운
+  fillSelect('ana-stock', stockNames.map(n => ({ value: n, label: `${n} (${ALL_STOCKS[n]})` })));
 }
 
 function fillSelect(id, items, isMulti = false, defaults = []) {
@@ -131,20 +120,6 @@ function fillSelect(id, items, isMulti = false, defaults = []) {
   el.innerHTML = items.map(item =>
     `<option value="${item.value}" ${defaults.includes(item.value) ? 'selected' : ''}>${item.label}</option>`
   ).join('');
-}
-
-function updateTaStockSelect(memberKey) {
-  const stocks = memberKey === '__all__'
-    ? Object.keys(ALL_STOCKS).sort()
-    : Object.keys(MEMBERS[memberKey] || {});
-  fillSelect('ta-stock', stocks.map(n => ({ value: n, label: n })));
-}
-
-function updateModStockSelect(memberKey) {
-  const stocks = memberKey === '__all__'
-    ? Object.keys(ALL_STOCKS).sort()
-    : Object.keys(MEMBERS[memberKey] || {});
-  fillSelect('mod-stock', stocks.map(n => ({ value: n, label: n })));
 }
 
 // ══════════════════════════════════════════════════════════════════════
@@ -294,35 +269,16 @@ function initPortfolioTab() {
 }
 
 // ══════════════════════════════════════════════════════════════════════
-//  기술분석 탭
+//  종목분석 탭
 // ══════════════════════════════════════════════════════════════════════
 
-function initTechnicalTab() {
-  document.getElementById('ta-run-btn').addEventListener('click', async () => {
-    const stock    = document.getElementById('ta-stock').value;
-    const strategy = document.getElementById('ta-strategy').value;
-    const rsiP     = parseInt(document.getElementById('ta-rsi-period').value) || 14;
+function initAnalysisTab() {
+  document.getElementById('ana-run-btn').addEventListener('click', async () => {
+    const stock = document.getElementById('ana-stock').value;
     if (!stock) { alert('종목을 선택하세요'); return; }
-    showLoading(`${stock} 기술적 분석 중...`);
-    try { await runTechnicalAnalysis(stock, strategy, rsiP); }
-    catch (e) { console.error(e); }
-    finally { hideLoading(); }
-  });
-}
-
-// ══════════════════════════════════════════════════════════════════════
-//  예측 모델 탭
-// ══════════════════════════════════════════════════════════════════════
-
-function initModelsTab() {
-  document.getElementById('mod-run-btn').addEventListener('click', async () => {
-    const stock = document.getElementById('mod-stock').value;
-    const days  = parseInt(document.getElementById('mod-days').value) || 30;
-    const nSim  = parseInt(document.getElementById('mod-nsim').value) || 500;
-    if (!stock) { alert('종목을 선택하세요'); return; }
-    showLoading(`${stock} 예측 모델 실행 중 (${nSim}회)...`);
-    try { await runPredictionModel(stock, days, nSim); }
-    catch (e) { console.error(e); }
+    showLoading(`${stock} 분석 중...`);
+    try { await runAnalysis(stock); }
+    catch (e) { console.error(e); document.getElementById('ana-status').textContent = `오류: ${e.message}`; }
     finally { hideLoading(); }
   });
 }

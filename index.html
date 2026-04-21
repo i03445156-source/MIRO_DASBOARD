@@ -55,8 +55,7 @@
       <button class="tab-btn" data-tab="returns">📈 수익률</button>
       <button class="tab-btn" data-tab="risk">🛡️ 리스크</button>
       <button class="tab-btn" data-tab="portfolio">🎯 포트폴리오</button>
-      <button class="tab-btn" data-tab="technical">🔬 기술분석</button>
-      <button class="tab-btn" data-tab="models">💡 예측모델</button>
+      <button class="tab-btn" data-tab="analysis">🔍 종목분석</button>
       <button class="tab-btn" data-tab="macro">🌐 매크로</button>
       <button class="tab-btn" data-tab="ai">🤖 AI-CFO</button>
     </div>
@@ -237,110 +236,93 @@
       </div>
     </section>
 
-    <!-- ─── 5. TECHNICAL ANALYSIS ─────────────────────────────────────── -->
-    <section id="tab-technical" class="tab-content hidden">
+    <!-- ─── 5. STOCK ANALYSIS ────────────────────────────────────────── -->
+    <section id="tab-analysis" class="tab-content hidden">
       <div class="section-header">
-        <span class="text-cyber">//</span> 기술적 분석 (RSI · MA · Granville)
+        <span class="text-cyber">//</span> 종목 분석
+        <span class="text-matrix/40 text-xs ml-2">200일 차트 · 기술지표 · 4모델 예측 · AI 보고서</span>
       </div>
 
-      <div class="flex flex-wrap gap-3 mb-4">
-        <div class="flex items-center gap-2">
-          <label class="text-xs text-matrix/60">멤버</label>
-          <select id="ta-member" class="terminal-select">
-            <option value="__all__">전체</option>
-          </select>
-        </div>
+      <!-- 종목 선택 -->
+      <div class="flex flex-wrap gap-3 mb-6 items-center">
         <div class="flex items-center gap-2">
           <label class="text-xs text-matrix/60">종목</label>
-          <select id="ta-stock" class="terminal-select min-w-40"></select>
+          <select id="ana-stock" class="terminal-select min-w-56"></select>
         </div>
-        <div class="flex items-center gap-2">
-          <label class="text-xs text-matrix/60">전략</label>
-          <select id="ta-strategy" class="terminal-select">
-            <option value="5,20">단기 (5/20)</option>
-            <option value="20,60">중기 (20/60)</option>
-            <option value="60,200" selected>장기 (60/200)</option>
-          </select>
-        </div>
-        <div class="flex items-center gap-2">
-          <label class="text-xs text-matrix/60">RSI기간</label>
-          <input id="ta-rsi-period" type="number" value="14" min="5" max="30" class="terminal-input w-16">
-        </div>
-        <button id="ta-run-btn" class="btn-primary">▶ 분석</button>
-        <div id="ta-status" class="text-xs text-matrix/40 self-center"></div>
+        <button id="ana-run-btn" class="btn-primary">▶ 분석 시작</button>
+        <div id="ana-status" class="text-xs text-matrix/40 self-center"></div>
       </div>
 
-      <!-- Signal banner -->
-      <div id="ta-signal-banner" class="hidden mb-4 p-3 border rounded text-sm"></div>
-
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
-        <div class="kpi-card"><div class="kpi-label">현재 RSI</div><div class="kpi-value" id="ta-rsi-val">--</div></div>
-        <div class="kpi-card"><div class="kpi-label">이동평균 배열</div><div class="kpi-value" id="ta-ma-signal">--</div></div>
-        <div class="kpi-card"><div class="kpi-label">Granville 신호</div><div class="kpi-value" id="ta-granville">--</div></div>
+      <!-- 200일 주가 차트 -->
+      <div class="card mb-3">
+        <div class="card-title">200일 주가 — MA20 · MA60 · MA200 · 볼린저밴드</div>
+        <div id="chart-ana-price" class="h-80"></div>
       </div>
 
+      <!-- RSI -->
       <div class="card mb-4">
-        <div class="card-title">주가 + 이동평균선</div>
-        <div id="chart-ta-price" class="h-80"></div>
+        <div class="card-title">RSI (14)</div>
+        <div id="chart-ana-rsi" class="h-36"></div>
       </div>
+
+      <!-- 기술적 지표 KPI -->
+      <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-3">
+        <div class="kpi-card">
+          <div class="kpi-label">현재가</div>
+          <div class="kpi-value" id="ana-price">--</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">RSI (14)</div>
+          <div class="kpi-value" id="ana-rsi">--</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">이동평균 배열</div>
+          <div class="kpi-value" id="ana-ma-signal">--</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">200일선 이격도</div>
+          <div class="kpi-value" id="ana-disparity">--</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">그랜빌 신호</div>
+          <div class="kpi-value" id="ana-granville">--</div>
+        </div>
+      </div>
+
+      <!-- 그랜빌 신호 배너 -->
+      <div id="ana-signal-banner" class="hidden mb-4 p-3 border rounded text-sm"></div>
+
+      <!-- 예측 모델 차트 -->
+      <div class="card mb-3">
+        <div class="card-title">30일 예측 모델 비교 — ARIMA · LSTM · Transformer · Prophet</div>
+        <div id="chart-ana-pred" class="h-72"></div>
+      </div>
+
+      <!-- 예측 모델 KPI -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        <div class="kpi-card">
+          <div class="kpi-label">ARIMA (30일)</div>
+          <div class="kpi-value text-sm" id="pred-arima">--</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">LSTM (30일)</div>
+          <div class="kpi-value text-sm" id="pred-lstm">--</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Transformer (30일)</div>
+          <div class="kpi-value text-sm" id="pred-trans">--</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Prophet (30일)</div>
+          <div class="kpi-value text-sm" id="pred-prop">--</div>
+        </div>
+      </div>
+
+      <!-- AI 보고서 -->
       <div class="card">
-        <div class="card-title">RSI 지표</div>
-        <div id="chart-ta-rsi" class="h-48"></div>
-      </div>
-    </section>
-
-    <!-- ─── 6. PREDICTION MODELS ──────────────────────────────────────── -->
-    <section id="tab-models" class="tab-content hidden">
-      <div class="section-header">
-        <span class="text-cyber">//</span> 예측 모델 (GARCH-Monte Carlo · ARIMA)
-      </div>
-
-      <div class="flex flex-wrap gap-3 mb-4">
-        <div class="flex items-center gap-2">
-          <label class="text-xs text-matrix/60">멤버</label>
-          <select id="mod-member" class="terminal-select">
-            <option value="__all__">전체</option>
-          </select>
-        </div>
-        <div class="flex items-center gap-2">
-          <label class="text-xs text-matrix/60">종목</label>
-          <select id="mod-stock" class="terminal-select min-w-40"></select>
-        </div>
-        <div class="flex items-center gap-2">
-          <label class="text-xs text-matrix/60">예측일수</label>
-          <input id="mod-days" type="number" value="30" min="10" max="90" class="terminal-input w-16">
-        </div>
-        <div class="flex items-center gap-2">
-          <label class="text-xs text-matrix/60">시뮬레이션</label>
-          <select id="mod-nsim" class="terminal-select">
-            <option value="100">100</option>
-            <option value="500" selected>500</option>
-            <option value="1000">1000</option>
-          </select>
-        </div>
-        <button id="mod-run-btn" class="btn-primary">▶ 실행</button>
-        <div id="mod-status" class="text-xs text-matrix/40 self-center"></div>
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
-        <div class="kpi-card"><div class="kpi-label">현재가</div><div class="kpi-value" id="mod-curr">--</div></div>
-        <div class="kpi-card"><div class="kpi-label">평균 예측가</div><div class="kpi-value text-gold" id="mod-mean">--</div></div>
-        <div class="kpi-card"><div class="kpi-label">예측 변동성</div><div class="kpi-value text-cyber" id="mod-vol">--</div></div>
-      </div>
-
-      <div class="card mb-4">
-        <div class="card-title">Monte Carlo 시나리오 + 평균 경로</div>
-        <div id="chart-mc-paths" class="h-96"></div>
-      </div>
-
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div class="card">
-          <div class="card-title">예측 분포 (최종일)</div>
-          <div id="chart-mc-dist" class="h-64"></div>
-        </div>
-        <div class="card">
-          <div class="card-title">수익률 히스토리 + 변동성</div>
-          <div id="chart-mc-vol" class="h-64"></div>
+        <div class="card-title">🤖 AI 투자 분석 보고서</div>
+        <div id="ana-report-content" class="text-white/30 text-sm leading-relaxed">
+          종목을 선택하고 분석을 시작하면 AI가 종합 투자 보고서를 작성합니다.
         </div>
       </div>
     </section>
