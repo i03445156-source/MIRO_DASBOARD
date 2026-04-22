@@ -13,7 +13,7 @@ export const SUPABASE_ANON_KEY = 'sb_publishable_DPg4t85IKaTcLH33TAY9aQ_msDphWuk
 export const STOCK_PROXY_URL   = `${SUPABASE_URL}/functions/v1/stock-proxy`;
 
 // ── Gemini API 키 (공개 레포 노출 주의 — 필요 시 UI 입력 권장) ─────
-export const GEMINI_API_KEY_DEFAULT = 'AIzaSyAYI_gPN63Q-rWHrcc6izX5nmsAT8239SI';
+export const GEMINI_API_KEY_DEFAULT = 'AIzaSyBSUauTYIAykmXN41ouCpiyuRDy3vhpHug';
 
 // ── FRED API (금리/레포 — https://fred.stlouisfed.org/docs/api/api_key.html) ─
 export const FRED_API_KEY = '47d073f722cfe9d92851890505f12c66';
