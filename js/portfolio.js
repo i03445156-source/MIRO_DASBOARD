@@ -361,7 +361,13 @@ export async function runPortfolioOptimization(selectedNames, rfRate, nSim) {
       const el = document.getElementById(id);
       if (el && window.Plotly) Plotly.Plots.resize(el);
     });
-  }, 150);
+  }, 300);
+  setTimeout(() => {
+    ['chart-frontier', 'chart-weights'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el && window.Plotly) Plotly.Plots.resize(el);
+    });
+  }, 700);
 
   // 비중 테이블
   document.getElementById('weights-table').innerHTML = `

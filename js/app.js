@@ -2,7 +2,7 @@
 //  app.js  — 앱 초기화, 탭 라우팅, 이벤트 리스너
 // ══════════════════════════════════════════════════════════════════════
 
-import { MEMBERS, ALL_STOCKS, BASE_DATE, COLORS, DARK_LAYOUT, PLOTLY_CONFIG } from './config.js';
+import { MEMBERS, ALL_STOCKS, BASE_DATE, COLORS, DARK_LAYOUT, PLOTLY_CONFIG, PYTHON_API_URL } from './config.js';
 import { loadReturns, runRiskAnalysis, runPortfolioOptimization } from './portfolio.js';
 import { runAnalysis } from './analysis.js';
 import { loadMacroTab } from './macro.js';
@@ -13,6 +13,7 @@ import { initAI } from './ai.js';
 // ══════════════════════════════════════════════════════════════════════
 
 document.addEventListener('DOMContentLoaded', () => {
+  warmupBackend();
   initHeader();
   initTabs();
   populateSelects();
@@ -22,6 +23,13 @@ document.addEventListener('DOMContentLoaded', () => {
   initAnalysisTab();
   initAI();
 });
+
+// Render.com 무료 티어는 15분 비활동 시 슬립 → 페이지 로드 시 미리 깨워둠
+function warmupBackend() {
+  if (!PYTHON_API_URL || PYTHON_API_URL.includes('YOUR-APP')) return;
+  fetch(`${PYTHON_API_URL}/`, { signal: AbortSignal.timeout(15000) })
+    .catch(() => {});
+}
 
 // ══════════════════════════════════════════════════════════════════════
 //  헤더 시계

@@ -98,21 +98,21 @@ async function _fetchViaProxy(ticker, period1, period2, interval) {
     }
   } catch (e) { console.warn('[api] allorigins→Stooq 실패:', e.message); }
 
-  // ③ Python 백엔드 (HuggingFace 배포 후 사용)
+  // ③ Python 백엔드 (Render.com — 슬립 시 5초 타임아웃 후 스킵)
   if (PYTHON_API_URL && !PYTHON_API_URL.includes('YOUR-APP')) {
     try {
       const s = new Date(period1 * 1000).toISOString().split('T')[0];
       const e = new Date(period2 * 1000).toISOString().split('T')[0];
       const resp = await fetch(
         `${PYTHON_API_URL}/stock?ticker=${encodeURIComponent(ticker)}&start=${s}&end=${e}`,
-        { signal: AbortSignal.timeout(8000) }
+        { signal: AbortSignal.timeout(5000) }
       );
       if (resp.ok) {
         const d = await resp.json();
         return { dates: d.dates, opens: d.opens, highs: d.highs,
                  lows: d.lows, closes: d.closes, volumes: d.volumes };
       }
-    } catch (e) { console.warn('[api] Python backend 실패:', e.message); }
+    } catch { /* Render 슬립 상태 — 다음 소스로 폴백 */ }
   }
 
   // ④ corsproxy.io → Yahoo Finance
@@ -248,14 +248,14 @@ export async function fetchFRED(seriesId, limit = 60) {
     try {
       const resp = await fetch(
         `${PYTHON_API_URL}/fred?series_id=${seriesId}&limit=${limit}`,
-        { signal: AbortSignal.timeout(10000) }
+        { signal: AbortSignal.timeout(5000) }
       );
       if (resp.ok) {
         const data = await resp.json();
         toCache(ck, data);
         return data;
       }
-    } catch {}
+    } catch { /* Render 슬립 — 더미 폴백 */ }
   }
 
   // 백엔드 없으면 더미 데이터
