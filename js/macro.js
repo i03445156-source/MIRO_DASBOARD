@@ -41,6 +41,7 @@ async function loadFXSection() {
 
     if (!fxHist.dates.length) throw new Error('FX 데이터 없음');
 
+    const fxEl = document.getElementById('chart-fx-trend');
     Plotly.newPlot('chart-fx-trend', [
       {
         x: fxHist.dates, y: fxHist.values,
@@ -50,16 +51,13 @@ async function loadFXSection() {
       }
     ], {
       ...DARK_LAYOUT,
-      height: 256,
+      height: 220,
+      width: fxEl ? fxEl.clientWidth || undefined : undefined,
       yaxis: { ...DARK_LAYOUT.yaxis, title: 'KRW' },
       xaxis: { ...DARK_LAYOUT.xaxis, title: '날짜' },
       margin: { l: 60, r: 20, t: 10, b: 40 },
     }, PLOTLY_CONFIG);
-
-    setTimeout(() => {
-      const el = document.getElementById('chart-fx-trend');
-      if (el && window.Plotly) Plotly.Plots.resize(el);
-    }, 150);
+    setTimeout(() => window.dispatchEvent(new Event('resize')), 300);
 
   } catch (e) {
     console.error('[macro] FX error:', e);
@@ -94,18 +92,16 @@ async function loadRatesSection() {
       line: { color: '#16a34a', dash: 'dot', width: 1.5 },
     });
 
+    const ratesEl = document.getElementById('chart-rates');
     Plotly.newPlot('chart-rates', traces, {
       ...DARK_LAYOUT,
-      height: 256,
+      height: 220,
+      width: ratesEl ? ratesEl.clientWidth || undefined : undefined,
       yaxis: { ...DARK_LAYOUT.yaxis, title: '금리 (%)' },
       xaxis: { ...DARK_LAYOUT.xaxis, title: '날짜' },
       margin: { l: 55, r: 20, t: 10, b: 40 },
     }, PLOTLY_CONFIG);
-
-    setTimeout(() => {
-      const el = document.getElementById('chart-rates');
-      if (el && window.Plotly) Plotly.Plots.resize(el);
-    }, 150);
+    setTimeout(() => window.dispatchEvent(new Event('resize')), 300);
 
     if (fedFunds.isDummy) annotateChart('chart-rates', '⚠ FRED API 키 미설정 — 임시 데이터');
 
@@ -140,18 +136,16 @@ async function loadRepoSection() {
       { x: iorb.dates, y: iorb.values, name: 'IORB (기준)', line: { color: '#2563eb', width: 1.5, dash: 'dash' } },
     ].map(t => ({ ...t, mode: 'lines' }));
 
+    const repoEl = document.getElementById('chart-repo');
     Plotly.newPlot('chart-repo', traces, {
       ...DARK_LAYOUT,
-      height: 256,
+      height: 220,
+      width: repoEl ? repoEl.clientWidth || undefined : undefined,
       yaxis: { ...DARK_LAYOUT.yaxis, title: '금리 (%)' },
       xaxis: { ...DARK_LAYOUT.xaxis, title: '날짜' },
       margin: { l: 55, r: 20, t: 10, b: 40 },
     }, PLOTLY_CONFIG);
-
-    setTimeout(() => {
-      const el = document.getElementById('chart-repo');
-      if (el && window.Plotly) Plotly.Plots.resize(el);
-    }, 150);
+    setTimeout(() => window.dispatchEvent(new Event('resize')), 300);
 
     if (sofr.isDummy) annotateChart('chart-repo', '⚠ FRED API 키 미설정 — 임시 데이터');
 

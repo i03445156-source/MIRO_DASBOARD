@@ -82,6 +82,9 @@ function switchTab(tabId) {
   if (btn) btn.classList.add('active');
   if (sec) sec.classList.remove('hidden');
 
+  // 탭 전환 후 Plotly responsive 재측정 (hidden→visible 시 width 0 문제 해결)
+  setTimeout(() => window.dispatchEvent(new Event('resize')), 50);
+
   // 매크로 탭은 처음 열 때만 로드
   if (tabId === 'macro' && !macroLoaded) {
     macroLoaded = true;

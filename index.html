@@ -268,68 +268,77 @@
         <span class="text-matrix/40 text-xs ml-2">환율 · 금리 · 레포</span>
       </div>
 
-      <!-- Exchange Rates -->
-      <div class="section-subheader">💱 환율 (실시간)</div>
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4" id="macro-fx-cards">
-        <div class="kpi-card"><div class="kpi-label">USD/KRW</div><div class="kpi-value" id="fx-usdkrw">--</div></div>
-        <div class="kpi-card"><div class="kpi-label">EUR/KRW</div><div class="kpi-value" id="fx-eurkrw">--</div></div>
-        <div class="kpi-card"><div class="kpi-label">JPY/KRW (×100)</div><div class="kpi-value" id="fx-jpykrw">--</div></div>
-        <div class="kpi-card"><div class="kpi-label">CNY/KRW</div><div class="kpi-value" id="fx-cnykrw">--</div></div>
-      </div>
-      <div class="card mb-6">
-        <div class="card-title">환율 추이 (최근 90일)</div>
-        <div id="chart-fx-trend" style="height:256px;min-height:256px;width:100%;"></div>
-      </div>
+      <!-- 2컬럼: 왼쪽 차트 / 오른쪽 경제지표 캘린더 -->
+      <div class="flex gap-4 items-start">
 
-      <!-- Interest Rates -->
-      <div class="section-subheader">📊 금리</div>
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-        <div class="kpi-card"><div class="kpi-label">Fed Funds Rate</div><div class="kpi-value text-gold" id="rate-fed">--</div></div>
-        <div class="kpi-card"><div class="kpi-label">한국 기준금리</div><div class="kpi-value text-gold" id="rate-bok">--</div></div>
-        <div class="kpi-card"><div class="kpi-label">US 10Y Treasury</div><div class="kpi-value text-cyber" id="rate-us10y">--</div></div>
-      </div>
-      <div class="card mb-6">
-        <div class="card-title">주요 금리 추이 (FRED 데이터)</div>
-        <div id="chart-rates" style="height:256px;min-height:256px;width:100%;"></div>
-      </div>
+        <!-- ── 왼쪽: 차트 영역 ─────────────────────────────────── -->
+        <div class="flex-1 min-w-0">
 
-      <!-- Repo / Money Market -->
-      <div class="section-subheader">🏦 레포 · 단기자금시장</div>
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-        <div class="kpi-card"><div class="kpi-label">SOFR</div><div class="kpi-value" id="repo-sofr">--</div></div>
-        <div class="kpi-card"><div class="kpi-label">IORB</div><div class="kpi-value" id="repo-iorb">--</div></div>
-        <div class="kpi-card"><div class="kpi-label">US M2 (조달러)</div><div class="kpi-value text-cyber" id="macro-m2">--</div></div>
-        <div class="kpi-card"><div class="kpi-label">VIX</div><div class="kpi-value text-crimson" id="macro-vix">--</div></div>
-      </div>
-      <div class="card mb-4">
-        <div class="card-title">레포/단기금리 추이</div>
-        <div id="chart-repo" style="height:256px;min-height:256px;width:100%;"></div>
-      </div>
+          <!-- Exchange Rates -->
+          <div class="section-subheader">💱 환율 (실시간)</div>
+          <div class="grid grid-cols-2 gap-3 mb-3" id="macro-fx-cards">
+            <div class="kpi-card"><div class="kpi-label">USD/KRW</div><div class="kpi-value" id="fx-usdkrw">--</div></div>
+            <div class="kpi-card"><div class="kpi-label">EUR/KRW</div><div class="kpi-value" id="fx-eurkrw">--</div></div>
+            <div class="kpi-card"><div class="kpi-label">JPY/KRW (×100)</div><div class="kpi-value" id="fx-jpykrw">--</div></div>
+            <div class="kpi-card"><div class="kpi-label">CNY/KRW</div><div class="kpi-value" id="fx-cnykrw">--</div></div>
+          </div>
+          <div class="card mb-4">
+            <div class="card-title">환율 추이 (USD/KRW 90일)</div>
+            <div id="chart-fx-trend" style="height:220px;min-height:220px;width:100%;"></div>
+          </div>
 
-      <!-- FRED API Key notice -->
-      <div class="card border-gold/30 text-xs text-matrix/50 mb-6">
-        <p>⚠️ 금리/레포 데이터는 <span class="text-gold">FRED API</span> 를 사용합니다.</p>
-        <p>무료 API 키: <a href="https://fred.stlouisfed.org/docs/api/api_key.html" class="text-cyber underline" target="_blank">fred.stlouisfed.org</a> 에서 발급 후 <code>js/config.js</code>의 <code>FRED_API_KEY</code>에 입력하세요.</p>
-        <p class="mt-1">환율 데이터는 <span class="text-gold">Frankfurter API</span> (무료, 키 불필요) 사용.</p>
-      </div>
+          <!-- Interest Rates -->
+          <div class="section-subheader">📊 금리</div>
+          <div class="grid grid-cols-3 gap-3 mb-3">
+            <div class="kpi-card"><div class="kpi-label">Fed Funds Rate</div><div class="kpi-value text-gold" id="rate-fed">--</div></div>
+            <div class="kpi-card"><div class="kpi-label">한국 기준금리</div><div class="kpi-value text-gold" id="rate-bok">--</div></div>
+            <div class="kpi-card"><div class="kpi-label">US 10Y Treasury</div><div class="kpi-value text-cyber" id="rate-us10y">--</div></div>
+          </div>
+          <div class="card mb-4">
+            <div class="card-title">주요 금리 추이 (FRED)</div>
+            <div id="chart-rates" style="height:220px;min-height:220px;width:100%;"></div>
+          </div>
 
-      <!-- Economic Calendar (Investing.com) -->
-      <div class="section-subheader">📅 글로벌 경제 지표 캘린더</div>
-      <div class="card p-0 overflow-hidden">
-        <iframe
-          src="https://sslecal2.investing.com?ecoDayBackground=%23ffffff&innerBackground=%23fafafa&borderColor=%23e4e4e7&columns=exc_flags,exc_currency,exc_importance,exc_actual,exc_forecast,exc_previous&features=datepicker,timezone&countries=110,25,172,32,6,37,122,5,15,47,107,57&calType=week&timeZone=17&lang=18"
-          width="100%"
-          height="460"
-          frameborder="0"
-          allowtransparency="true"
-          marginwidth="0"
-          marginheight="0"
-          style="display:block;"
-        ></iframe>
-        <div class="px-3 py-1 text-xs text-matrix/30 border-t border-border">
-          출처: <a href="https://kr.investing.com/economic-calendar/" class="underline" target="_blank">Investing.com</a>
+          <!-- Repo / Money Market -->
+          <div class="section-subheader">🏦 레포 · 단기자금시장</div>
+          <div class="grid grid-cols-2 gap-3 mb-3">
+            <div class="kpi-card"><div class="kpi-label">SOFR</div><div class="kpi-value" id="repo-sofr">--</div></div>
+            <div class="kpi-card"><div class="kpi-label">IORB</div><div class="kpi-value" id="repo-iorb">--</div></div>
+            <div class="kpi-card"><div class="kpi-label">US M2 (조달러)</div><div class="kpi-value text-cyber" id="macro-m2">--</div></div>
+            <div class="kpi-card"><div class="kpi-label">VIX</div><div class="kpi-value text-crimson" id="macro-vix">--</div></div>
+          </div>
+          <div class="card mb-3">
+            <div class="card-title">레포/단기금리 추이</div>
+            <div id="chart-repo" style="height:220px;min-height:220px;width:100%;"></div>
+          </div>
+
+          <div class="card border-gold/30 text-xs text-matrix/50">
+            <p>⚠️ 금리/레포: <span class="text-gold">FRED API</span> 사용 — <a href="https://fred.stlouisfed.org/docs/api/api_key.html" class="text-cyber underline" target="_blank">fred.stlouisfed.org</a> 에서 무료 발급</p>
+            <p class="mt-1">환율: <span class="text-gold">Frankfurter API</span> (무료, 키 불필요)</p>
+          </div>
         </div>
-      </div>
+
+        <!-- ── 오른쪽: 경제지표 캘린더 (sticky) ──────────────── -->
+        <div class="shrink-0 sticky top-16" style="width:420px;">
+          <div class="section-subheader">📅 글로벌 경제지표 캘린더</div>
+          <div class="card p-0 overflow-hidden">
+            <iframe
+              src="https://sslecal2.investing.com?ecoDayBackground=%23ffffff&innerBackground=%23fafafa&borderColor=%23e4e4e7&columns=exc_flags,exc_currency,exc_importance,exc_actual,exc_forecast,exc_previous&features=datepicker,timezone&countries=110,25,172,32,6,37,122,5,15,47,107,57&calType=week&timeZone=17&lang=18"
+              width="100%"
+              height="820"
+              frameborder="0"
+              allowtransparency="true"
+              marginwidth="0"
+              marginheight="0"
+              style="display:block;"
+            ></iframe>
+            <div class="px-3 py-1 text-xs text-matrix/30 border-t border-border">
+              출처: <a href="https://kr.investing.com/economic-calendar/" class="underline" target="_blank">Investing.com</a>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- end flex -->
     </section>
 
     <!-- ─── 8. AI CHAT ─────────────────────────────────────────────────── -->

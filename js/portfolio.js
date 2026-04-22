@@ -160,13 +160,8 @@ export async function runRiskAnalysis(selectedNames, investmentMW, confLevel) {
   document.getElementById('risk-var').textContent  = `${Math.round(varValue).toLocaleString()}원 (${(varPct*100).toFixed(2)}%)`;
   document.getElementById('risk-mdd').textContent  = `${(mdd * 100).toFixed(2)}%`;
 
-  // var-dist resize (단일 종목도 포함)
-  setTimeout(() => {
-    const el = document.getElementById('chart-var-dist');
-    if (el && window.Plotly) Plotly.Plots.resize(el);
-  }, 300);
-
-  // 히스토그램
+  // 히스토그램 (VaR 분포)
+  const varDistEl = document.getElementById('chart-var-dist');
   Plotly.newPlot('chart-var-dist', [
     {
       x: portRets.map(v => v * 100),
@@ -177,6 +172,7 @@ export async function runRiskAnalysis(selectedNames, investmentMW, confLevel) {
   ], {
     ...DARK_LAYOUT,
     height: 288,
+    width: varDistEl ? varDistEl.clientWidth || undefined : undefined,
     margin: { l: 55, r: 20, t: 10, b: 50 },
     shapes: [{
       type: 'line',
@@ -194,13 +190,16 @@ export async function runRiskAnalysis(selectedNames, investmentMW, confLevel) {
 
   // 상관관계 히트맵 (종목 2개 이상)
   if (validNames.length >= 2) {
+    const corrEl = document.getElementById('chart-corr');
+    const corrW  = corrEl ? corrEl.clientWidth || undefined : undefined;
+
     const corrMatrix = validNames.map((_, i) =>
       validNames.map((__, j) => {
         const ri = trimmed[i], rj = trimmed[j];
         const mi = mean(ri), mj = mean(rj);
         const si = std(ri),  sj = std(rj);
         const cov = ri.reduce((s, v, k) => s + (v - mi) * (rj[k] - mj), 0) / ri.length;
-        return si && sj ? cov / (si * sj) : (i === j ? 1 : 0);
+        return si && sj ? +(cov / (si * sj)).toFixed(4) : (i === j ? 1 : 0);
       })
     );
 
@@ -208,29 +207,22 @@ export async function runRiskAnalysis(selectedNames, investmentMW, confLevel) {
       z: corrMatrix,
       x: validNames, y: validNames,
       type: 'heatmap',
-      colorscale: [
-        [0, '#1d4ed8'], [0.5, '#f8fafc'], [1, '#dc2626']
-      ],
+      colorscale: [[0,'#1d4ed8'],[0.5,'#f8fafc'],[1,'#dc2626']],
       zmin: -1, zmax: 1,
       text: corrMatrix.map(row => row.map(v => v.toFixed(2))),
       texttemplate: '%{text}',
-      textfont: { size: 9, color: '#09090b' },
+      textfont: { size: 10, color: '#09090b' },
     }], {
       ...DARK_LAYOUT,
       height: 288,
-      margin: { l: 90, r: 20, t: 10, b: 90 },
+      width: corrW,
+      margin: { l: 100, r: 20, t: 10, b: 100 },
     }, PLOTLY_CONFIG);
-
-    // 상관 히트맵 resize — 300ms + 600ms 이중 보장
-    setTimeout(() => {
-      const el = document.getElementById('chart-corr');
-      if (el && window.Plotly) Plotly.Plots.resize(el);
-    }, 300);
-    setTimeout(() => {
-      const el = document.getElementById('chart-corr');
-      if (el && window.Plotly) Plotly.Plots.resize(el);
-    }, 700);
   }
+
+  // 모든 리스크 차트 resize — window resize 이벤트로 Plotly responsive 핸들러 트리거
+  setTimeout(() => window.dispatchEvent(new Event('resize')), 200);
+  setTimeout(() => window.dispatchEvent(new Event('resize')), 600);
 
   statusEl.textContent = `완료 (${validNames.length}개 종목)`;
 }
@@ -305,6 +297,7 @@ export async function runPortfolioOptimization(selectedNames, rfRate, nSim) {
   document.getElementById('port-vol').textContent    = `${(best.pStd * 100).toFixed(2)}%`;
 
   // 효율적 프론티어 산점도
+  const frontierEl = document.getElementById('chart-frontier');
   Plotly.newPlot('chart-frontier', [
     {
       x: results.map(r => r.pStd * 100),
@@ -331,6 +324,7 @@ export async function runPortfolioOptimization(selectedNames, rfRate, nSim) {
   ], {
     ...DARK_LAYOUT,
     height: 320,
+    width: frontierEl ? frontierEl.clientWidth || undefined : undefined,
     xaxis: { ...DARK_LAYOUT.xaxis, title: '변동성 (%)' },
     yaxis: { ...DARK_LAYOUT.yaxis, title: '기대수익률 (%)' },
     margin: { l: 55, r: 20, t: 10, b: 50 },
@@ -341,6 +335,7 @@ export async function runPortfolioOptimization(selectedNames, rfRate, nSim) {
     .filter(d => d.weight > 0.005)
     .sort((a, b) => b.weight - a.weight);
 
+  const weightsEl = document.getElementById('chart-weights');
   Plotly.newPlot('chart-weights', [{
     labels: weightData.map(d => d.name),
     values: weightData.map(d => d.weight),
@@ -352,22 +347,14 @@ export async function runPortfolioOptimization(selectedNames, rfRate, nSim) {
   }], {
     ...DARK_LAYOUT,
     height: 320,
+    width: weightsEl ? weightsEl.clientWidth || undefined : undefined,
     margin: { l: 20, r: 20, t: 20, b: 20 },
     showlegend: false,
   }, PLOTLY_CONFIG);
 
-  setTimeout(() => {
-    ['chart-frontier', 'chart-weights'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el && window.Plotly) Plotly.Plots.resize(el);
-    });
-  }, 300);
-  setTimeout(() => {
-    ['chart-frontier', 'chart-weights'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el && window.Plotly) Plotly.Plots.resize(el);
-    });
-  }, 700);
+  // 프론티어/비중/몬테카를로 — window resize로 Plotly responsive 트리거
+  setTimeout(() => window.dispatchEvent(new Event('resize')), 200);
+  setTimeout(() => window.dispatchEvent(new Event('resize')), 700);
 
   // 비중 테이블
   document.getElementById('weights-table').innerHTML = `
@@ -458,18 +445,15 @@ export async function runPortfolioOptimization(selectedNames, rfRate, nSim) {
     },
   ];
 
+  const mcEl = document.getElementById('chart-montecarlo');
   Plotly.newPlot('chart-montecarlo', mcTraces, {
     ...DARK_LAYOUT,
     height: 288,
+    width: mcEl ? mcEl.clientWidth || undefined : undefined,
     yaxis: { ...DARK_LAYOUT.yaxis, title: '수익률 (100 기준)' },
     xaxis: { ...DARK_LAYOUT.xaxis, title: '날짜', type: 'date', tickformat: '%Y-%m' },
     margin: { l: 60, r: 20, t: 10, b: 50 },
   }, PLOTLY_CONFIG);
-
-  setTimeout(() => {
-    const el = document.getElementById('chart-montecarlo');
-    if (el && window.Plotly) Plotly.Plots.resize(el);
-  }, 300);
 
   statusEl.textContent = `완료 — 최적 샤프 ${best.sharpe.toFixed(3)}`;
 }
