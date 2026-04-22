@@ -4,7 +4,7 @@
 
 import { GEMINI_API_KEY_DEFAULT } from './config.js';
 
-const GEMINI_MODEL   = 'gemini-2.5-pro';
+const GEMINI_MODEL   = 'gemini-2.5-flash';
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
 const SYSTEM_PROMPT = `당신은 MIRO 대시보드의 전문 AI-CFO입니다. 티타임 투자 클럽(TT)의 포트폴리오를 관리하며 아래 데이터를 기반으로 종합 투자 보고서와 분석을 제공합니다.
