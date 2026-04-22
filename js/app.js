@@ -66,6 +66,7 @@ function initHeader() {
 // ══════════════════════════════════════════════════════════════════════
 
 let macroLoaded = false;
+let aiReturnsLoaded = false;
 
 function initTabs() {
   document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -89,6 +90,12 @@ function switchTab(tabId) {
   if (tabId === 'macro' && !macroLoaded) {
     macroLoaded = true;
     loadMacroTab();
+  }
+
+  // AI 탭 열면 전체 멤버 수익률을 백그라운드로 자동 로드 (AI 컨텍스트용)
+  if (tabId === 'ai' && !aiReturnsLoaded) {
+    aiReturnsLoaded = true;
+    loadReturns('__all__').catch(() => {});
   }
 }
 

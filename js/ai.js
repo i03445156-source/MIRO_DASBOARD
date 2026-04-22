@@ -2,7 +2,8 @@
 //  ai.js  — Gemini API 채팅 (REST API 직접 호출)
 // ══════════════════════════════════════════════════════════════════════
 
-import { GEMINI_API_KEY_DEFAULT } from './config.js';
+import { GEMINI_API_KEY_DEFAULT, ALL_STOCKS } from './config.js';
+import { runAnalysis } from './analysis.js';
 
 const GEMINI_MODEL   = 'gemini-2.5-flash';
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
@@ -113,8 +114,16 @@ async function sendUserMessage() {
   document.getElementById('ai-send-btn').disabled = true;
 
   appendMessage('user', text);
-  const typingId = appendMessage('bot', '<span class="chat-msg-typing">분석 중...</span>');
+  const typingId = appendMessage('bot', '<span class="chat-msg-typing">데이터 로딩 중...</span>');
 
+  // 질문에서 종목명 감지 → 백그라운드로 자동 분석 실행
+  const detectedStock = Object.keys(ALL_STOCKS).find(name => text.includes(name));
+  if (detectedStock && window._ttDashData?.analysis?.stock !== detectedStock) {
+    updateMessage(typingId, `<span class="chat-msg-typing">${detectedStock} 실데이터 수집 중...</span>`);
+    await runAnalysis(detectedStock).catch(() => {});
+  }
+
+  updateMessage(typingId, '<span class="chat-msg-typing">분석 중...</span>');
   conversationHistory.push({ role: 'user', parts: [{ text }] });
 
   try {
