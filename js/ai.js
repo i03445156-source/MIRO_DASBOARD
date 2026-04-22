@@ -55,12 +55,10 @@ function buildSystemPrompt() {
 6. **매크로 체크** — 환율·금리·레포 환경이 포트폴리오에 미치는 영향
 7. **주의사항** — 주요 리스크 요인
 
-━━━ 데이터 정직성 원칙 (반드시 준수) ━━━
-• 나는 실시간 주가, 현재 수익률, 최신 재무 데이터에 접근할 수 없다.
-• 주가나 수익률을 모를 때 절대로 임의로 숫자를 만들거나 "가정치"를 제시하지 않는다.
-• 대신 "현재 삼성전자 주가가 얼마인지 알려주시면 분석해 드리겠습니다"처럼 사용자에게 직접 데이터를 요청한다.
-• 사용자가 현재가/수익률을 알려준 경우에만 그 숫자를 기준으로 분석한다.
-• MIRO 대시보드의 차트/지표는 사용자가 직접 보고 있는 것이며, AI는 그 해석을 돕는 역할이다.
+━━━ 데이터 원칙 ━━━
+• 시스템 지시문 하단에 "MIRO 현재 로드된 yfinance 실데이터" 블록이 있으면 그 숫자를 사실로 사용하라. 대시보드가 yfinance에서 직접 수집한 실제 데이터다.
+• 해당 블록에 없는 종목의 주가·수익률은 절대 임의로 만들지 말고, 사용자에게 요청하라.
+• 예측 모델 수치(ARIMA/LSTM/Transformer/Prophet)가 블록에 있으면 그것을 근거로 투자 의견을 제시하라.
 
 항상 한국어로 답변하고, 투자 책임은 투자자 본인에게 있음을 명시하세요.`;
 }
@@ -133,11 +131,43 @@ async function sendUserMessage() {
   }
 }
 
+// ── 대시보드 실데이터 컨텍스트 빌드 ──────────────────────────────────
+
+function buildDashboardContext() {
+  const d = window._ttDashData;
+  if (!d) return '';
+  const lines = [];
+
+  if (d.analysis) {
+    const a = d.analysis;
+    const isKR = a.ticker.endsWith('.KS') || a.ticker.endsWith('.KQ');
+    const fmt = v => v != null ? (isKR ? Number(v).toLocaleString() + '원' : String(v)) : '--';
+    lines.push(`[종목분석] ${a.stock} (${a.ticker}) — 기준: ${a.date}`);
+    lines.push(`현재가: ${fmt(a.price)} | RSI(14): ${a.rsi ?? '--'}`);
+    lines.push(`MA20: ${fmt(a.ma20)} / MA60: ${fmt(a.ma60)} / MA200: ${fmt(a.ma200)} → ${a.maSignal ?? '--'}`);
+    lines.push(`200일선 괴리율: ${a.disparity}% | 그랜빌: ${a.granville}${a.granvilleDesc ? ' — ' + a.granvilleDesc : ''}`);
+    lines.push(`30일 예측 (yfinance 실데이터 기반):`);
+    lines.push(`  ARIMA: ${fmt(a.predictions.arima.price)} (${a.predictions.arima.pct}%)`);
+    lines.push(`  LSTM: ${fmt(a.predictions.lstm.price)} (${a.predictions.lstm.pct}%)`);
+    lines.push(`  Transformer: ${fmt(a.predictions.transformer.price)} (${a.predictions.transformer.pct}%)`);
+    lines.push(`  Prophet: ${fmt(a.predictions.prophet.price)} (${a.predictions.prophet.pct}%)`);
+  }
+
+  if (d.returns?.stocks?.length) {
+    lines.push(`[수익률] ${d.returns.member === '__all__' ? '전체 멤버' : d.returns.member} — 기준일: 2026-03-13`);
+    d.returns.stocks.forEach(s => lines.push(`  ${s.name} (${s.ticker}): ${s.ret}%`));
+  }
+
+  return lines.length
+    ? '\n\n━━━ MIRO 현재 로드된 yfinance 실데이터 ━━━\n' + lines.join('\n')
+    : '';
+}
+
 // ── Gemini REST API 호출 ────────────────────────────────────────────
 
 async function callGeminiAPI(apiKey, history) {
   const body = {
-    system_instruction: { parts: [{ text: buildSystemPrompt() }] },
+    system_instruction: { parts: [{ text: buildSystemPrompt() + buildDashboardContext() }] },
     contents: history,
     generationConfig: {
       temperature: 0.7,

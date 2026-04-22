@@ -360,5 +360,28 @@ export async function runAnalysis(stockName) {
     });
   }, 150);
 
+  // AI 컨텍스트용 실데이터 저장
+  window._ttDashData = window._ttDashData || {};
+  window._ttDashData.analysis = {
+    stock: stockName,
+    ticker,
+    date: dates[dates.length - 1],
+    price: lastClose,
+    rsi: lastRSI != null ? lastRSI.toFixed(1) : null,
+    ma20: lastMA20 != null ? Math.round(lastMA20) : null,
+    ma60: lastMA60 != null ? Math.round(lastMA60) : null,
+    ma200: lastMA200 != null ? Math.round(lastMA200) : null,
+    maSignal: lastMA20 != null && lastMA60 != null ? (lastMA20 > lastMA60 ? '정배열' : '역배열') : null,
+    disparity: disparity.toFixed(1),
+    granville: granville.signal || '관망',
+    granvilleDesc: granville.desc || '',
+    predictions: {
+      arima:       { price: Math.round(arima[FDAYS - 1]), pct: ((arima[FDAYS - 1] / lastClose - 1) * 100).toFixed(1) },
+      lstm:        { price: Math.round(lstm[FDAYS - 1]),  pct: ((lstm[FDAYS - 1]  / lastClose - 1) * 100).toFixed(1) },
+      transformer: { price: Math.round(trans[FDAYS - 1]), pct: ((trans[FDAYS - 1] / lastClose - 1) * 100).toFixed(1) },
+      prophet:     { price: Math.round(prop[FDAYS - 1]),  pct: ((prop[FDAYS - 1]  / lastClose - 1) * 100).toFixed(1) },
+    },
+  };
+
   setStatus(`완료 — ${stockName} (${dates[dates.length - 1]})`);
 }

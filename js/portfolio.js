@@ -81,6 +81,13 @@ export async function loadReturns(memberKey) {
     xaxis: { ...DARK_LAYOUT.xaxis, title: '날짜' },
   }, PLOTLY_CONFIG);
 
+  // AI 컨텍스트용 실데이터 저장
+  window._ttDashData = window._ttDashData || {};
+  window._ttDashData.returns = {
+    member: memberKey,
+    stocks: tableRows.map(r => ({ name: r.name, ticker: r.ticker, ret: r.ret.toFixed(2) })),
+  };
+
   // 테이블
   tableRows.sort((a, b) => b.ret - a.ret);
   const tbl = document.getElementById('returns-table');
