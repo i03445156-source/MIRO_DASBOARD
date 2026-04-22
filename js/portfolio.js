@@ -188,41 +188,8 @@ export async function runRiskAnalysis(selectedNames, investmentMW, confLevel) {
     }],
   }, PLOTLY_CONFIG);
 
-  // 상관관계 히트맵 (종목 2개 이상)
-  if (validNames.length >= 2) {
-    const corrEl = document.getElementById('chart-corr');
-    const corrW  = corrEl ? corrEl.clientWidth || undefined : undefined;
-
-    const corrMatrix = validNames.map((_, i) =>
-      validNames.map((__, j) => {
-        const ri = trimmed[i], rj = trimmed[j];
-        const mi = mean(ri), mj = mean(rj);
-        const si = std(ri),  sj = std(rj);
-        const cov = ri.reduce((s, v, k) => s + (v - mi) * (rj[k] - mj), 0) / ri.length;
-        return si && sj ? +(cov / (si * sj)).toFixed(4) : (i === j ? 1 : 0);
-      })
-    );
-
-    Plotly.newPlot('chart-corr', [{
-      z: corrMatrix,
-      x: validNames, y: validNames,
-      type: 'heatmap',
-      colorscale: [[0,'#1d4ed8'],[0.5,'#f8fafc'],[1,'#dc2626']],
-      zmin: -1, zmax: 1,
-      text: corrMatrix.map(row => row.map(v => v.toFixed(2))),
-      texttemplate: '%{text}',
-      textfont: { size: 10, color: '#09090b' },
-    }], {
-      ...DARK_LAYOUT,
-      height: 288,
-      width: corrW,
-      margin: { l: 100, r: 20, t: 10, b: 100 },
-    }, PLOTLY_CONFIG);
-  }
-
-  // 모든 리스크 차트 resize — window resize 이벤트로 Plotly responsive 핸들러 트리거
+  // resize 트리거
   setTimeout(() => window.dispatchEvent(new Event('resize')), 200);
-  setTimeout(() => window.dispatchEvent(new Event('resize')), 600);
 
   statusEl.textContent = `완료 (${validNames.length}개 종목)`;
 }
