@@ -160,6 +160,12 @@ export async function runRiskAnalysis(selectedNames, investmentMW, confLevel) {
   document.getElementById('risk-var').textContent  = `${Math.round(varValue).toLocaleString()}원 (${(varPct*100).toFixed(2)}%)`;
   document.getElementById('risk-mdd').textContent  = `${(mdd * 100).toFixed(2)}%`;
 
+  // var-dist resize (단일 종목도 포함)
+  setTimeout(() => {
+    const el = document.getElementById('chart-var-dist');
+    if (el && window.Plotly) Plotly.Plots.resize(el);
+  }, 300);
+
   // 히스토그램
   Plotly.newPlot('chart-var-dist', [
     {
@@ -215,12 +221,15 @@ export async function runRiskAnalysis(selectedNames, investmentMW, confLevel) {
       margin: { l: 90, r: 20, t: 10, b: 90 },
     }, PLOTLY_CONFIG);
 
+    // 상관 히트맵 resize — 300ms + 600ms 이중 보장
     setTimeout(() => {
-      ['chart-var-dist', 'chart-corr'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el && window.Plotly) Plotly.Plots.resize(el);
-      });
-    }, 150);
+      const el = document.getElementById('chart-corr');
+      if (el && window.Plotly) Plotly.Plots.resize(el);
+    }, 300);
+    setTimeout(() => {
+      const el = document.getElementById('chart-corr');
+      if (el && window.Plotly) Plotly.Plots.resize(el);
+    }, 700);
   }
 
   statusEl.textContent = `완료 (${validNames.length}개 종목)`;
@@ -365,46 +374,96 @@ export async function runPortfolioOptimization(selectedNames, rfRate, nSim) {
       </tbody>
     </table>`;
 
-  // Monte Carlo 스트레스 테스트
+  // Monte Carlo 스트레스 테스트 — Box-Muller 정규분포, 날짜 x축
   const portDailyRets = Array.from({ length: minL }, (_, day) =>
     best.w.reduce((s, wi, i) => s + wi * R[i][day], 0)
   );
   const mu    = mean(portDailyRets);
   const sigma = std(portDailyRets);
+
+  // Box-Muller: 균일분포 → 표준정규분포
+  function randNormal() {
+    let u, v;
+    do { u = Math.random(); v = Math.random(); } while (u === 0);
+    return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+  }
+
+  // 미래 영업일 날짜 생성 (253개)
+  const mcDates = [];
+  const d0 = new Date();
+  for (let i = 0; mcDates.length < 253; i++) {
+    const d = new Date(d0);
+    d.setDate(d0.getDate() + i);
+    if (d.getDay() !== 0 && d.getDay() !== 6) mcDates.push(d.toISOString().split('T')[0]);
+  }
+
+  const N_PATHS = 80;
   const mcPaths = [];
-  for (let i = 0; i < 50; i++) {
+  for (let i = 0; i < N_PATHS; i++) {
     let val = 100;
     const path = [val];
     for (let d = 0; d < 252; d++) {
-      val *= 1 + mu + sigma * (Math.random() * 2 - 1) * 1.4142;
-      path.push(val);
+      val *= Math.exp(mu - 0.5 * sigma ** 2 + sigma * randNormal());
+      path.push(Math.max(val, 0.01));
     }
     mcPaths.push(path);
   }
-  const mcDays = Array.from({ length: 253 }, (_, i) => i);
-  const mcTraces = mcPaths.map(p => ({
-    x: mcDays, y: p, mode: 'lines',
-    line: { color: 'rgba(37,99,235,0.12)', width: 0.8 }, showlegend: false,
-  }));
-  const mcMean = mcDays.map(d => mean(mcPaths.map(p => p[d])));
-  mcTraces.push({ x: mcDays, y: mcMean, mode: 'lines', name: '평균 경로', line: { color: '#09090b', width: 2 } });
-  mcTraces.push({
-    x: mcDays, y: Array(253).fill(100 * (1 + 0.035 / 252) ** mcDays[mcDays.length - 1]),
-    mode: 'lines', name: '연 3.5% 예금', line: { color: '#64748b', dash: 'dash', width: 1.5 },
+
+  const mcMean = mcDates.map((_, d) => mean(mcPaths.map(p => p[d])));
+
+  // 퍼센타일 밴드 (10th–90th)
+  const pct10 = mcDates.map((_, d) => {
+    const vals = mcPaths.map(p => p[d]).sort((a, b) => a - b);
+    return vals[Math.floor(N_PATHS * 0.1)];
   });
+  const pct90 = mcDates.map((_, d) => {
+    const vals = mcPaths.map(p => p[d]).sort((a, b) => a - b);
+    return vals[Math.floor(N_PATHS * 0.9)];
+  });
+
+  // 예금 기준선
+  const savingsLine = mcDates.map((_, i) => 100 * Math.pow(1 + 0.035, i / 252));
+
+  const mcTraces = [
+    // 90th 퍼센타일 경계 (채우기용 상단)
+    {
+      x: mcDates, y: pct90,
+      mode: 'lines', line: { color: 'transparent' },
+      name: '90th', showlegend: false,
+    },
+    // 10th 퍼센타일 + fillto 90th
+    {
+      x: mcDates, y: pct10,
+      mode: 'lines', name: '10~90th 구간',
+      fill: 'tonexty', fillcolor: 'rgba(37,99,235,0.10)',
+      line: { color: 'rgba(37,99,235,0.3)', width: 1 },
+    },
+    // 평균 경로
+    {
+      x: mcDates, y: mcMean,
+      mode: 'lines', name: '평균 경로',
+      line: { color: '#09090b', width: 2.5 },
+    },
+    // 예금 기준선
+    {
+      x: mcDates, y: savingsLine,
+      mode: 'lines', name: '연 3.5% 예금',
+      line: { color: '#64748b', dash: 'dash', width: 1.5 },
+    },
+  ];
 
   Plotly.newPlot('chart-montecarlo', mcTraces, {
     ...DARK_LAYOUT,
     height: 288,
-    yaxis: { ...DARK_LAYOUT.yaxis, title: '100 기준' },
-    xaxis: { ...DARK_LAYOUT.xaxis, title: '영업일' },
-    margin: { l: 55, r: 20, t: 10, b: 50 },
+    yaxis: { ...DARK_LAYOUT.yaxis, title: '수익률 (100 기준)' },
+    xaxis: { ...DARK_LAYOUT.xaxis, title: '날짜', type: 'date', tickformat: '%Y-%m' },
+    margin: { l: 60, r: 20, t: 10, b: 50 },
   }, PLOTLY_CONFIG);
 
   setTimeout(() => {
     const el = document.getElementById('chart-montecarlo');
     if (el && window.Plotly) Plotly.Plots.resize(el);
-  }, 150);
+  }, 300);
 
   statusEl.textContent = `완료 — 최적 샤프 ${best.sharpe.toFixed(3)}`;
 }
