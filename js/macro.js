@@ -7,8 +7,6 @@
 import { fetchFXRates, fetchFXHistory, fetchFRED } from './api.js';
 import { DARK_LAYOUT, PLOTLY_CONFIG } from './config.js';
 
-// ── 한국은행 기준금리 (고정값 — ECOS API 없이도 표시) ───────────────
-// FRED 키 없을 때 fallback
 const BOK_RATE = 2.75; // 2026년 기준 수동 업데이트
 
 // ══════════════════════════════════════════════════════════════════════
@@ -27,7 +25,6 @@ export async function loadMacroTab() {
 
 async function loadFXSection() {
   try {
-    // 현재 환율 (USD 기준)
     const rates = await fetchFXRates('USD', ['KRW', 'EUR', 'JPY', 'CNY']);
     const usdkrw = rates['KRW'];
     const eurkrw = usdkrw / rates['EUR'];
@@ -41,18 +38,28 @@ async function loadFXSection() {
 
     // 환율 추이 차트 (USD/KRW 90일)
     const fxHist = await fetchFXHistory('USD', 'KRW', 90);
+
+    if (!fxHist.dates.length) throw new Error('FX 데이터 없음');
+
     Plotly.newPlot('chart-fx-trend', [
       {
         x: fxHist.dates, y: fxHist.values,
         mode: 'lines', name: 'USD/KRW',
-        line: { color: '#ffffff', width: 1.8 },
-        fill: 'tozeroy', fillcolor: 'rgba(255,255,255,0.04)',
+        line: { color: '#2563eb', width: 2 },
+        fill: 'tozeroy', fillcolor: 'rgba(37,99,235,0.08)',
       }
     ], {
       ...DARK_LAYOUT,
+      height: 256,
       yaxis: { ...DARK_LAYOUT.yaxis, title: 'KRW' },
       xaxis: { ...DARK_LAYOUT.xaxis, title: '날짜' },
+      margin: { l: 60, r: 20, t: 10, b: 40 },
     }, PLOTLY_CONFIG);
+
+    setTimeout(() => {
+      const el = document.getElementById('chart-fx-trend');
+      if (el && window.Plotly) Plotly.Plots.resize(el);
+    }, 150);
 
   } catch (e) {
     console.error('[macro] FX error:', e);
@@ -70,34 +77,37 @@ async function loadRatesSection() {
       fetchFRED('GS2',      60),
     ]);
 
-    setText('rate-fed',    `${fedFunds.latest?.toFixed(2) ?? '--'}%`);
-    setText('rate-bok',    `${BOK_RATE}%`);
-    setText('rate-us10y',  `${us10y.latest?.toFixed(2)   ?? '--'}%`);
-    setText('rate-kr10y',  '조회 중...');
+    setText('rate-fed',   `${fedFunds.latest?.toFixed(2) ?? '--'}%`);
+    setText('rate-bok',   `${BOK_RATE}%`);
+    setText('rate-us10y', `${us10y.latest?.toFixed(2)   ?? '--'}%`);
 
-    // 금리 추이 차트
     const traces = [
-      { x: fedFunds.dates, y: fedFunds.values, name: 'Fed Funds', line: { color: '#ffffff', width: 2 } },
-      { x: us10y.dates,    y: us10y.values,    name: 'US 10Y',    line: { color: '#aaaaaa', width: 1.5 } },
-      { x: us2y.dates,     y: us2y.values,     name: 'US 2Y',     line: { color: '#777777', width: 1.5, dash: 'dash' } },
+      { x: fedFunds.dates, y: fedFunds.values, name: 'Fed Funds', line: { color: '#09090b', width: 2 } },
+      { x: us10y.dates,    y: us10y.values,    name: 'US 10Y',    line: { color: '#2563eb', width: 1.5 } },
+      { x: us2y.dates,     y: us2y.values,     name: 'US 2Y',     line: { color: '#64748b', width: 1.5, dash: 'dash' } },
     ].map(t => ({ ...t, mode: 'lines' }));
 
     traces.push({
       x: [fedFunds.dates[0], fedFunds.dates[fedFunds.dates.length - 1]],
       y: [BOK_RATE, BOK_RATE],
       mode: 'lines', name: `한국 기준금리 (${BOK_RATE}%)`,
-      line: { color: '#cccccc', dash: 'dot', width: 1.5 },
+      line: { color: '#16a34a', dash: 'dot', width: 1.5 },
     });
 
     Plotly.newPlot('chart-rates', traces, {
       ...DARK_LAYOUT,
+      height: 256,
       yaxis: { ...DARK_LAYOUT.yaxis, title: '금리 (%)' },
       xaxis: { ...DARK_LAYOUT.xaxis, title: '날짜' },
+      margin: { l: 55, r: 20, t: 10, b: 40 },
     }, PLOTLY_CONFIG);
 
-    if (fedFunds.isDummy) {
-      annotateChart('chart-rates', '⚠ FRED API 키 미설정 — 임시 데이터');
-    }
+    setTimeout(() => {
+      const el = document.getElementById('chart-rates');
+      if (el && window.Plotly) Plotly.Plots.resize(el);
+    }, 150);
+
+    if (fedFunds.isDummy) annotateChart('chart-rates', '⚠ FRED API 키 미설정 — 임시 데이터');
 
   } catch (e) {
     console.error('[macro] Rates error:', e);
@@ -114,35 +124,36 @@ async function loadRepoSection() {
       fetchFRED('M2SL',  24),
     ]);
 
-    // VIX는 Yahoo Finance 에서 가져오기
-    let vixStr = '--';
     try {
       const vixHist = await fetchFRED('VIXCLS', 5);
       const vixVal = vixHist.latest;
-      vixStr = vixVal ? vixVal.toFixed(2) : '--';
-      setText('macro-vix', vixStr);
+      setText('macro-vix', vixVal ? vixVal.toFixed(2) : '--');
       colorKPI('macro-vix', vixVal, 20, 30);
     } catch { setText('macro-vix', '--'); }
 
-    setText('repo-sofr', `${sofr.latest?.toFixed(2)   ?? '--'}%`);
-    setText('repo-iorb', `${iorb.latest?.toFixed(2)   ?? '--'}%`);
+    setText('repo-sofr', `${sofr.latest?.toFixed(2) ?? '--'}%`);
+    setText('repo-iorb', `${iorb.latest?.toFixed(2) ?? '--'}%`);
     setText('macro-m2',  m2.latest ? `$${(m2.latest / 1000).toFixed(1)}T` : '--');
 
-    // 레포 차트
     const traces = [
-      { x: sofr.dates, y: sofr.values, name: 'SOFR',       line: { color: '#ffffff', width: 2 } },
-      { x: iorb.dates, y: iorb.values, name: 'IORB (기준)', line: { color: '#aaaaaa', width: 1.5, dash: 'dash' } },
+      { x: sofr.dates, y: sofr.values, name: 'SOFR',       line: { color: '#09090b', width: 2 } },
+      { x: iorb.dates, y: iorb.values, name: 'IORB (기준)', line: { color: '#2563eb', width: 1.5, dash: 'dash' } },
     ].map(t => ({ ...t, mode: 'lines' }));
 
     Plotly.newPlot('chart-repo', traces, {
       ...DARK_LAYOUT,
+      height: 256,
       yaxis: { ...DARK_LAYOUT.yaxis, title: '금리 (%)' },
       xaxis: { ...DARK_LAYOUT.xaxis, title: '날짜' },
+      margin: { l: 55, r: 20, t: 10, b: 40 },
     }, PLOTLY_CONFIG);
 
-    if (sofr.isDummy) {
-      annotateChart('chart-repo', '⚠ FRED API 키 미설정 — 임시 데이터');
-    }
+    setTimeout(() => {
+      const el = document.getElementById('chart-repo');
+      if (el && window.Plotly) Plotly.Plots.resize(el);
+    }, 150);
+
+    if (sofr.isDummy) annotateChart('chart-repo', '⚠ FRED API 키 미설정 — 임시 데이터');
 
   } catch (e) {
     console.error('[macro] Repo error:', e);
@@ -160,17 +171,16 @@ function setTextAll(ids, val) { ids.forEach(id => setText(id, val)); }
 function colorKPI(id, val, warnThresh, dangerThresh) {
   const el = document.getElementById(id);
   if (!el || val == null) return;
-  el.className = `kpi-value ${val >= dangerThresh ? 'text-crimson' : val >= warnThresh ? 'text-gold' : 'text-matrix'}`;
+  el.className = `kpi-value ${val >= dangerThresh ? 'text-crimson' : val >= warnThresh ? 'text-gold' : ''}`;
 }
 
 function annotateChart(divId, text) {
-  const layout = {
+  Plotly.relayout(divId, {
     annotations: [{
       text, x: 0.5, y: 0.5, xref: 'paper', yref: 'paper',
-      font: { color: '#FFD700', size: 10 }, showarrow: false,
+      font: { color: '#d97706', size: 10 }, showarrow: false,
     }]
-  };
-  Plotly.relayout(divId, layout).catch(() => {});
+  }).catch(() => {});
 }
 
 window._ttMacro = { loadMacroTab };

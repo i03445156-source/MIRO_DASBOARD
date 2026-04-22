@@ -5,7 +5,7 @@
 
 import { GEMINI_API_KEY_DEFAULT } from './config.js';
 
-const GEMINI_MODEL   = 'gemini-2.0-flash';
+const GEMINI_MODEL   = 'gemini-1.5-flash';
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
 const SYSTEM_PROMPT = `당신은 TT 포트폴리오의 전문 AI-CFO입니다.

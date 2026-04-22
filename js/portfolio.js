@@ -165,21 +165,23 @@ export async function runRiskAnalysis(selectedNames, investmentMW, confLevel) {
     {
       x: portRets.map(v => v * 100),
       type: 'histogram', nbinsx: 50,
-      marker: { color: '#aaaaaa', opacity: 0.7 },
+      marker: { color: '#2563eb', opacity: 0.6 },
       name: '수익률 분포',
     }
   ], {
     ...DARK_LAYOUT,
+    height: 288,
+    margin: { l: 55, r: 20, t: 10, b: 50 },
     shapes: [{
       type: 'line',
       x0: -varPct * 100, x1: -varPct * 100,
       y0: 0, y1: 1, yref: 'paper',
-      line: { color: '#FF3333', width: 2, dash: 'dash' },
+      line: { color: '#dc2626', width: 2, dash: 'dash' },
     }],
     annotations: [{
       x: -varPct * 100, y: 0.9, yref: 'paper',
       text: `VaR ${(confLevel*100).toFixed(0)}%`,
-      font: { color: '#FF3333', size: 10 },
+      font: { color: '#dc2626', size: 10 },
       showarrow: false,
     }],
   }, PLOTLY_CONFIG);
@@ -201,13 +203,24 @@ export async function runRiskAnalysis(selectedNames, investmentMW, confLevel) {
       x: validNames, y: validNames,
       type: 'heatmap',
       colorscale: [
-        [0, '#444444'], [0.5, '#111111'], [1, '#ffffff']
+        [0, '#1d4ed8'], [0.5, '#f8fafc'], [1, '#dc2626']
       ],
       zmin: -1, zmax: 1,
       text: corrMatrix.map(row => row.map(v => v.toFixed(2))),
       texttemplate: '%{text}',
-      textfont: { size: 9 },
-    }], { ...DARK_LAYOUT, margin: { l: 80, r: 20, t: 10, b: 80 } }, PLOTLY_CONFIG);
+      textfont: { size: 9, color: '#09090b' },
+    }], {
+      ...DARK_LAYOUT,
+      height: 288,
+      margin: { l: 90, r: 20, t: 10, b: 90 },
+    }, PLOTLY_CONFIG);
+
+    setTimeout(() => {
+      ['chart-var-dist', 'chart-corr'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el && window.Plotly) Plotly.Plots.resize(el);
+      });
+    }, 150);
   }
 
   statusEl.textContent = `완료 (${validNames.length}개 종목)`;
@@ -290,11 +303,11 @@ export async function runPortfolioOptimization(selectedNames, rfRate, nSim) {
       mode: 'markers',
       type: 'scatter',
       marker: {
-        size: 3,
+        size: 4,
         color: results.map(r => r.sharpe),
-        colorscale: [[0,'#333333'],[0.5,'#888888'],[1,'#ffffff']],
+        colorscale: [[0,'#dbeafe'],[0.5,'#2563eb'],[1,'#1e3a8a']],
         colorbar: { title: 'Sharpe', tickfont: { size: 9 } },
-        opacity: 0.6,
+        opacity: 0.7,
       },
       name: '포트폴리오',
     },
@@ -303,13 +316,15 @@ export async function runPortfolioOptimization(selectedNames, rfRate, nSim) {
       y: [best.pRet * 100],
       mode: 'markers',
       type: 'scatter',
-      marker: { size: 12, color: '#FFD700', symbol: 'star' },
+      marker: { size: 14, color: '#dc2626', symbol: 'star' },
       name: '최적 포트폴리오',
     }
   ], {
     ...DARK_LAYOUT,
+    height: 320,
     xaxis: { ...DARK_LAYOUT.xaxis, title: '변동성 (%)' },
     yaxis: { ...DARK_LAYOUT.yaxis, title: '기대수익률 (%)' },
+    margin: { l: 55, r: 20, t: 10, b: 50 },
   }, PLOTLY_CONFIG);
 
   // 최적 비중 파이차트
@@ -323,9 +338,21 @@ export async function runPortfolioOptimization(selectedNames, rfRate, nSim) {
     type: 'pie',
     hole: 0.35,
     marker: { colors: COLORS },
-    textfont: { size: 10, color: '#000' },
+    textfont: { size: 10, color: '#09090b' },
     textinfo: 'label+percent',
-  }], { ...DARK_LAYOUT, margin: { l: 20, r: 20, t: 20, b: 20 }, showlegend: false }, PLOTLY_CONFIG);
+  }], {
+    ...DARK_LAYOUT,
+    height: 320,
+    margin: { l: 20, r: 20, t: 20, b: 20 },
+    showlegend: false,
+  }, PLOTLY_CONFIG);
+
+  setTimeout(() => {
+    ['chart-frontier', 'chart-weights'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el && window.Plotly) Plotly.Plots.resize(el);
+    });
+  }, 150);
 
   // 비중 테이블
   document.getElementById('weights-table').innerHTML = `
@@ -357,20 +384,27 @@ export async function runPortfolioOptimization(selectedNames, rfRate, nSim) {
   const mcDays = Array.from({ length: 253 }, (_, i) => i);
   const mcTraces = mcPaths.map(p => ({
     x: mcDays, y: p, mode: 'lines',
-    line: { color: 'rgba(255,255,255,0.07)', width: 0.8 }, showlegend: false,
+    line: { color: 'rgba(37,99,235,0.12)', width: 0.8 }, showlegend: false,
   }));
   const mcMean = mcDays.map(d => mean(mcPaths.map(p => p[d])));
-  mcTraces.push({ x: mcDays, y: mcMean, mode: 'lines', name: '평균 경로', line: { color: '#ffffff', width: 2 } });
+  mcTraces.push({ x: mcDays, y: mcMean, mode: 'lines', name: '평균 경로', line: { color: '#09090b', width: 2 } });
   mcTraces.push({
     x: mcDays, y: Array(253).fill(100 * (1 + 0.035 / 252) ** mcDays[mcDays.length - 1]),
-    mode: 'lines', name: '연 3.5% 예금', line: { color: '#666666', dash: 'dash', width: 1.5 },
+    mode: 'lines', name: '연 3.5% 예금', line: { color: '#64748b', dash: 'dash', width: 1.5 },
   });
 
   Plotly.newPlot('chart-montecarlo', mcTraces, {
     ...DARK_LAYOUT,
+    height: 288,
     yaxis: { ...DARK_LAYOUT.yaxis, title: '100 기준' },
     xaxis: { ...DARK_LAYOUT.xaxis, title: '영업일' },
+    margin: { l: 55, r: 20, t: 10, b: 50 },
   }, PLOTLY_CONFIG);
+
+  setTimeout(() => {
+    const el = document.getElementById('chart-montecarlo');
+    if (el && window.Plotly) Plotly.Plots.resize(el);
+  }, 150);
 
   statusEl.textContent = `완료 — 최적 샤프 ${best.sharpe.toFixed(3)}`;
 }

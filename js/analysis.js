@@ -3,7 +3,7 @@
 // ══════════════════════════════════════════════════════════════════════
 
 import { fetchOHLC } from './api.js';
-import { ALL_STOCKS, DARK_LAYOUT, PLOTLY_CONFIG, GEMINI_API_KEY_DEFAULT } from './config.js';
+import { ALL_STOCKS, DARK_LAYOUT, PLOTLY_CONFIG } from './config.js';
 import { calcMA, calcRSI, calcBollinger, granvilleSignal } from './technical.js';
 
 // ── 통계 유틸 ─────────────────────────────────────────────────────
@@ -186,76 +186,6 @@ function forecastProphet(closes, dates, days) {
 }
 
 // ══════════════════════════════════════════════════════════════════════
-//  AI 보고서  (Gemini)
-// ══════════════════════════════════════════════════════════════════════
-async function generateReport(data, ticker) {
-  const el = document.getElementById('ana-report-content');
-  if (!el) return;
-  el.innerHTML = '<span class="text-white/30 animate-pulse">보고서 생성 중...</span>';
-
-  const apiKey = localStorage.getItem('tt_gemini_key') || GEMINI_API_KEY_DEFAULT;
-  if (!apiKey) {
-    el.innerHTML = '<span class="text-white/30">Gemini API 키가 필요합니다. AI-CFO 탭에서 설정하세요.</span>';
-    return;
-  }
-
-  const isKR = ticker.endsWith('.KS') || ticker.endsWith('.KQ');
-  const fmtP = v => isKR ? Math.round(v).toLocaleString() + '원' : v.toFixed(2) + 'USD';
-  const fmtPct = v => `${((v / data.lastClose - 1) * 100).toFixed(1)}%`;
-
-  const avgPred = mean([data.arima, data.lstm, data.transformer, data.prophet]);
-  const allUp   = [data.arima, data.lstm, data.transformer, data.prophet].every(v => v > data.lastClose);
-  const allDown = [data.arima, data.lstm, data.transformer, data.prophet].every(v => v < data.lastClose);
-
-  const prompt = `당신은 전문 주식 분석가입니다. 아래 데이터를 기반으로 ${data.stockName}의 투자 분석 보고서를 한국어로 작성하세요.
-
-[기술적 분석]
-현재가: ${fmtP(data.lastClose)}
-RSI(14): ${data.rsi?.toFixed(1) ?? 'N/A'} ${data.rsi >= 70 ? '(과매수)' : data.rsi <= 30 ? '(과매도)' : '(중립)'}
-이동평균 배열: ${data.maSignal}
-200일 이동평균: ${fmtP(data.ma200)} | 이격도: ${data.disparity.toFixed(1)}%
-그랜빌 신호: ${data.granville.signal || '특이 신호 없음'} — ${data.granville.desc}
-
-[30일 예측 모델 결과]
-ARIMA    : ${fmtP(data.arima)} (${fmtPct(data.arima)})
-LSTM     : ${fmtP(data.lstm)} (${fmtPct(data.lstm)})
-Transformer: ${fmtP(data.transformer)} (${fmtPct(data.transformer)})
-Prophet  : ${fmtP(data.prophet)} (${fmtPct(data.prophet)})
-4모델 평균: ${fmtP(avgPred)} (${fmtPct(avgPred)})
-방향 합의: ${allUp ? '4모델 모두 상승 예측' : allDown ? '4모델 모두 하락 예측' : '모델별 의견 분산'}
-
-다음 형식으로 250자 이내로 간결하게 작성하세요:
-
-**현황** (1~2문장 — 현재가 기준 기술적 상태)
-**예측 종합** (1~2문장 — 4개 모델의 방향성과 신뢰도)
-**투자 의견** (매수 / 중립 / 매도 + 핵심 근거 1문장)
-**주의** (리스크 1문장)
-
-※ 본 분석은 AI 시뮬레이션 기반이며 투자 판단 책임은 투자자 본인에게 있습니다.`;
-
-  try {
-    const resp = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
-      }
-    );
-    const json = await resp.json();
-    const text = json.candidates?.[0]?.content?.parts?.[0]?.text ?? '보고서 생성 실패';
-
-    el.innerHTML = text
-      .replace(/\*\*(.+?)\*\*/g, '<span class="text-white font-semibold">$1</span>')
-      .split('\n')
-      .map(line => line.trim() ? `<p class="mb-2 text-white/75 text-sm leading-relaxed">${line}</p>` : '')
-      .join('');
-  } catch (e) {
-    el.innerHTML = `<span class="text-white/30">보고서 생성 오류: ${e.message}</span>`;
-  }
-}
-
-// ══════════════════════════════════════════════════════════════════════
 //  메인 분석 실행
 // ══════════════════════════════════════════════════════════════════════
 export async function runAnalysis(stockName) {
@@ -429,19 +359,6 @@ export async function runAnalysis(stockName) {
       if (el && window.Plotly) Plotly.Plots.resize(el);
     });
   }, 150);
-
-  // ── AI 보고서 ─────────────────────────────────────────────────────
-  setStatus('AI 보고서 생성 중...');
-  await generateReport({
-    stockName, lastClose,
-    rsi: lastRSI,
-    maSignal: lastMA20 > lastMA60 ? '정배열' : '역배열',
-    disparity, granville, ma200: lastMA200,
-    arima: arima[FDAYS - 1],
-    lstm:  lstm[FDAYS - 1],
-    transformer: trans[FDAYS - 1],
-    prophet: prop[FDAYS - 1],
-  }, ticker);
 
   setStatus(`완료 — ${stockName} (${dates[dates.length - 1]})`);
 }
