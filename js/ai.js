@@ -5,8 +5,20 @@
 import { GEMINI_API_KEY_DEFAULT, ALL_STOCKS } from './config.js';
 import { runAnalysis } from './analysis.js';
 
-const GEMINI_MODEL   = 'gemini-2.5-flash';
-const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+// 텍스트 생성 모델 폴백 체인 — 429/503/500 발생 시 순서대로 자동 전환
+const MODEL_CHAIN = [
+  'gemini-2.5-flash',       // primary  (rpm:5,  rpd:20)
+  'gemini-3-flash',         // latest   (rpm:5,  rpd:20)
+  'gemini-3.1-flash-lite',  // light    (rpm:15, rpd:500)
+  'gemma-4-31b',            // open     (rpm:15, rpd:1500)
+  'gemma-3-27b',            // fallback (rpm:30, rpd:14400)
+];
+const RETRYABLE = new Set([429, 500, 503]);
+let modelIdx = 0;  // 세션 내 현재 사용 모델 인덱스
+
+function modelApiUrl(model) {
+  return `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+}
 
 function buildSystemPrompt() {
   const today = new Date().toISOString().split('T')[0];
@@ -127,9 +139,12 @@ async function sendUserMessage() {
   conversationHistory.push({ role: 'user', parts: [{ text }] });
 
   try {
-    const reply = await callGeminiAPI(apiKey, conversationHistory);
-    updateMessage(typingId, reply);
-    conversationHistory.push({ role: 'model', parts: [{ text: reply }] });
+    const { text, model } = await callGeminiAPI(apiKey, conversationHistory);
+    const notice = model !== MODEL_CHAIN[0]
+      ? `<span style="display:block;font-size:10px;color:#71717a;margin-bottom:6px">↪ ${model} 사용 중 (2.5-flash 과부하 자동 전환)</span>`
+      : '';
+    updateMessage(typingId, notice + text);
+    conversationHistory.push({ role: 'model', parts: [{ text }] });
     if (conversationHistory.length > 20) conversationHistory = conversationHistory.slice(-20);
   } catch (e) {
     updateMessage(typingId, `❌ 오류: ${e.message}`);
@@ -172,31 +187,57 @@ function buildDashboardContext() {
     : '';
 }
 
-// ── Gemini REST API 호출 ────────────────────────────────────────────
+// ── Gemini REST API 호출 (모델 폴백 포함) ──────────────────────────
 
 async function callGeminiAPI(apiKey, history) {
   const body = {
     system_instruction: { parts: [{ text: buildSystemPrompt() + buildDashboardContext() }] },
     contents: history,
-    generationConfig: {
-      temperature: 0.7,
-      maxOutputTokens: 8192,
-    },
+    generationConfig: { temperature: 0.7, maxOutputTokens: 8192 },
   };
 
-  const resp = await fetch(`${GEMINI_API_URL}?key=${apiKey}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
+  let lastError;
 
-  if (!resp.ok) {
-    const err = await resp.json().catch(() => ({}));
-    throw new Error(err?.error?.message || `HTTP ${resp.status}`);
+  for (let i = modelIdx; i < MODEL_CHAIN.length; i++) {
+    const model = MODEL_CHAIN[i];
+
+    // 네트워크 호출
+    let resp;
+    try {
+      resp = await fetch(`${modelApiUrl(model)}?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+    } catch (networkErr) {
+      lastError = networkErr;
+      if (i < MODEL_CHAIN.length - 1) {
+        console.warn(`[AI] ${model} 네트워크 오류 → ${MODEL_CHAIN[i + 1]} 시도`);
+        continue;
+      }
+      break;
+    }
+
+    // 재시도 가능한 HTTP 오류 (429 / 500 / 503)
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      lastError = new Error(err?.error?.message || `HTTP ${resp.status}`);
+      if (RETRYABLE.has(resp.status) && i < MODEL_CHAIN.length - 1) {
+        console.warn(`[AI] ${model} HTTP ${resp.status} → ${MODEL_CHAIN[i + 1]} 전환`);
+        modelIdx = i + 1;
+        continue;
+      }
+      throw lastError;
+    }
+
+    // 성공 — 이 모델을 세션에 고정
+    modelIdx = i;
+    const data = await resp.json();
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '응답 없음';
+    return { text, model };
   }
 
-  const data = await resp.json();
-  return data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '응답 없음';
+  throw lastError || new Error('사용 가능한 모델 없음');
 }
 
 // ── UI 헬퍼 ───────────────────────────────────────────────────────
