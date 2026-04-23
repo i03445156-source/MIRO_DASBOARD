@@ -5,15 +5,15 @@
 import { GEMINI_API_KEY_DEFAULT, ALL_STOCKS } from './config.js';
 import { runAnalysis } from './analysis.js';
 
-// 텍스트 생성 모델 폴백 체인 — 429/503/500 발생 시 순서대로 자동 전환
+// 텍스트 생성 모델 폴백 체인 — 오류 시 순서대로 자동 전환
+// Gemini 3 모델 ID 확정되면 맨 앞에 추가하면 됨 (404 자동 스킵)
 const MODEL_CHAIN = [
-  'gemini-2.5-flash',       // primary  (rpm:5,  rpd:20)
-  'gemini-3-flash',         // latest   (rpm:5,  rpd:20)
-  'gemini-3.1-flash-lite',  // light    (rpm:15, rpd:500)
-  'gemma-4-31b',            // open     (rpm:15, rpd:1500)
-  'gemma-3-27b',            // fallback (rpm:30, rpd:14400)
+  'gemini-2.5-flash',      // primary   (성능·속도 균형)
+  'gemini-2.5-flash-lite', // 2nd       (경량, 높은 처리량)
+  'gemini-2.5-pro',        // last      (고성능, RPM 제한 엄격)
 ];
-const RETRYABLE = new Set([429, 500, 503]);
+// 404: 모델 ID 미존재 → 자동 스킵 (Gemini 3 preview ID 불확실 대비)
+const RETRYABLE = new Set([429, 404, 500, 503]);
 let modelIdx = 0;  // 세션 내 현재 사용 모델 인덱스
 
 function modelApiUrl(model) {
