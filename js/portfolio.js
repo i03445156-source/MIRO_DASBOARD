@@ -107,6 +107,61 @@ export async function loadReturns(memberKey) {
     </table>`;
 
   statusEl.textContent = `${traces.length}개 종목 로드 완료`;
+
+  // ── 멤버별 평균 수익률 랭킹 (전체보기일 때만) ──────────────────────
+  const memberCard = document.getElementById('member-rank-card');
+  const memberTbl  = document.getElementById('member-rank-table');
+  if (!memberCard || !memberTbl) return;
+
+  if (memberKey !== '__all__') {
+    memberCard.classList.add('hidden');
+    return;
+  }
+
+  const retMap = {};
+  tableRows.forEach(r => { retMap[r.name] = r.ret; });
+
+  const memberRanks = Object.entries(MEMBERS)
+    .map(([member, stocks]) => {
+      const rows = Object.keys(stocks)
+        .filter(n => retMap[n] != null)
+        .map(n => ({ name: n, ret: retMap[n] }));
+      if (!rows.length) return null;
+      const avg  = rows.reduce((s, r) => s + r.ret, 0) / rows.length;
+      const best = rows.reduce((a, b) => b.ret > a.ret ? b : a);
+      return { member, avg, best, rows };
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.avg - a.avg);
+
+  const medals = ['🥇', '🥈', '🥉'];
+  memberTbl.innerHTML = `
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>순위</th>
+          <th>멤버</th>
+          <th>보유 종목</th>
+          <th class="text-right">평균 수익률</th>
+          <th class="text-right">최고 종목</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${memberRanks.map((r, i) => `
+          <tr class="${i < 3 ? 'font-medium' : ''}">
+            <td class="text-center w-8">${medals[i] ?? i + 1}</td>
+            <td>${r.member}</td>
+            <td class="text-xs text-matrix/50">${r.rows.map(s => s.name).join(' · ')}</td>
+            <td class="${r.avg >= 0 ? 'ret-pos' : 'ret-neg'} text-right tabular-nums font-bold">
+              ${r.avg >= 0 ? '+' : ''}${r.avg.toFixed(2)}%
+            </td>
+            <td class="text-right text-xs ${r.best.ret >= 0 ? 'ret-pos' : 'ret-neg'} tabular-nums">
+              ${r.best.name} (${r.best.ret >= 0 ? '+' : ''}${r.best.ret.toFixed(2)}%)
+            </td>
+          </tr>`).join('')}
+      </tbody>
+    </table>`;
+  memberCard.classList.remove('hidden');
 }
 
 // ══════════════════════════════════════════════════════════════════════

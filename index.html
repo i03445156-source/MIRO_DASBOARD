@@ -79,9 +79,16 @@
         <div id="chart-returns" style="height:384px;min-height:384px;width:100%;"></div>
       </div>
 
-      <div class="card">
-        <div class="card-title">현재 수익률 랭킹</div>
+      <div class="card mb-4">
+        <div class="card-title">종목별 수익률 랭킹</div>
         <div id="returns-table" class="overflow-x-auto"></div>
+      </div>
+
+      <div class="card hidden" id="member-rank-card">
+        <div class="card-title">멤버별 평균 수익률 랭킹
+          <span class="text-matrix/40 text-xs font-normal ml-2">보유 종목 평균 기준</span>
+        </div>
+        <div id="member-rank-table" class="overflow-x-auto"></div>
       </div>
     </section>
 
