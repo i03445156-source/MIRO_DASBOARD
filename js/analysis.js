@@ -5,6 +5,7 @@
 import { fetchOHLC } from './api.js';
 import { ALL_STOCKS, DARK_LAYOUT, PLOTLY_CONFIG } from './config.js';
 import { calcMA, calcRSI, calcBollinger, granvilleSignal } from './technical.js';
+import { saveResult } from './community.js';
 
 // ── 통계 유틸 ─────────────────────────────────────────────────────
 
@@ -382,6 +383,15 @@ export async function runAnalysis(stockName) {
       prophet:     { price: Math.round(prop[FDAYS - 1]),  pct: ((prop[FDAYS - 1]  / lastClose - 1) * 100).toFixed(1) },
     },
   };
+
+  // 커뮤니티 랭킹에 자동 저장
+  const _avgPct = (
+    (arima[FDAYS - 1] / lastClose - 1) +
+    (lstm[FDAYS - 1]  / lastClose - 1) +
+    (trans[FDAYS - 1] / lastClose - 1) +
+    (prop[FDAYS - 1]  / lastClose - 1)
+  ) * 25;  // ×100/4
+  saveResult('stock', [stockName], +_avgPct.toFixed(2), window._ttDashData.analysis);
 
   setStatus(`완료 — ${stockName} (${dates[dates.length - 1]})`);
 }

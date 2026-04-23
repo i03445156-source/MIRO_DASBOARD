@@ -4,6 +4,7 @@
 
 import { fetchMultiClose } from './api.js';
 import { MEMBERS, BASE_DATE, ALL_STOCKS, COLORS, DARK_LAYOUT, PLOTLY_CONFIG } from './config.js';
+import { saveResult } from './community.js';
 
 // ── 유틸 ──────────────────────────────────────────────────────────
 export function pctReturns(closes) {
@@ -428,6 +429,16 @@ export async function runPortfolioOptimization(selectedNames, rfRate, nSim) {
     xaxis: { ...DARK_LAYOUT.xaxis, title: '날짜', type: 'date', tickformat: '%Y-%m' },
     margin: { l: 60, r: 20, t: 10, b: 50 },
   }, PLOTLY_CONFIG);
+
+  // 커뮤니티 랭킹에 자동 저장
+  const _w = {};
+  validNames.forEach((n, i) => { _w[n] = +best.w[i].toFixed(4); });
+  saveResult('portfolio', [...validNames].sort(), +best.sharpe.toFixed(4), {
+    weights: _w,
+    sharpe:  +best.sharpe.toFixed(4),
+    ret:     +(best.pRet * 100).toFixed(2),
+    vol:     +(best.pStd * 100).toFixed(2),
+  });
 
   statusEl.textContent = `완료 — 최적 샤프 ${best.sharpe.toFixed(3)}`;
 }

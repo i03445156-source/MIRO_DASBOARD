@@ -7,6 +7,7 @@ import { loadReturns, runRiskAnalysis, runPortfolioOptimization } from './portfo
 import { runAnalysis } from './analysis.js';
 import { loadMacroTab } from './macro.js';
 import { initAI } from './ai.js';
+import { loadAndRenderRankings } from './community.js';
 
 // ══════════════════════════════════════════════════════════════════════
 //  앱 부트스트랩
@@ -96,6 +97,11 @@ function switchTab(tabId) {
   if (tabId === 'ai' && !aiReturnsLoaded) {
     aiReturnsLoaded = true;
     loadReturns('__all__').catch(() => {});
+  }
+
+  // 랭킹 탭 열릴 때마다 최신 데이터 로드
+  if (tabId === 'ranking') {
+    loadAndRenderRankings();
   }
 }
 

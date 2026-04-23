@@ -46,6 +46,7 @@
       <button class="tab-btn" data-tab="returns">수익률</button>
       <button class="tab-btn" data-tab="risk">리스크</button>
       <button class="tab-btn" data-tab="portfolio">포트폴리오</button>
+      <button class="tab-btn" data-tab="ranking">🏆 랭킹</button>
       <button class="tab-btn" data-tab="macro">매크로</button>
       <button class="tab-btn" data-tab="ai">AI-CFO</button>
     </div>
@@ -253,6 +254,74 @@
       <!-- 그랜빌 배너 -->
       <div id="ana-signal-banner" class="hidden p-3 border rounded text-sm"></div>
 
+    </section>
+
+    <!-- ─── RANKING ────────────────────────────────────────────────────── -->
+    <section id="tab-ranking" class="tab-content hidden">
+      <div class="section-header flex items-center justify-between">
+        <div>
+          <span class="text-cyber">//</span> 커뮤니티 랭킹
+          <span class="text-matrix/40 text-xs ml-2">모든 사용자의 분석 결과 자동 집계</span>
+        </div>
+        <div id="rank-status" class="text-xs text-matrix/40"></div>
+      </div>
+
+      <!-- 포트폴리오 조합 TOP -->
+      <div class="card mb-4">
+        <div class="card-title flex items-center justify-between">
+          <span>🏆 포트폴리오 조합 TOP 10 <span class="text-matrix/40 text-xs font-normal ml-1">샤프비율 기준</span></span>
+          <span id="rank-total-port" class="text-xs text-matrix/40 font-normal"></span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th class="w-8">순위</th>
+                <th>종목 조합</th>
+                <th class="text-right">샤프비율</th>
+                <th class="text-right">기대수익률</th>
+                <th class="text-right">시도횟수</th>
+              </tr>
+            </thead>
+            <tbody id="rank-portfolio-body">
+              <tr><td colspan="5" class="text-center text-xs text-matrix/40 py-8">포트폴리오 탭에서 최적화를 실행하면 여기에 쌓입니다</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 종목 인기도 -->
+      <div class="card mb-4">
+        <div class="card-title flex items-center justify-between">
+          <span>🔥 가장 많이 분석된 종목</span>
+          <span id="rank-total-stock" class="text-xs text-matrix/40 font-normal"></span>
+        </div>
+        <div id="chart-rank-popular" style="min-height:280px;width:100%;"></div>
+      </div>
+
+      <!-- 예측 수익률 TOP -->
+      <div class="card">
+        <div class="card-title">
+          📈 예측 수익률 TOP 10
+          <span class="text-matrix/40 text-xs font-normal ml-1">4모델 평균, 30일 기준</span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th class="w-8">순위</th>
+                <th>종목</th>
+                <th class="text-right">평균 예측</th>
+                <th class="text-right">최고 예측</th>
+                <th class="text-right">분석횟수</th>
+              </tr>
+            </thead>
+            <tbody id="rank-pred-body">
+              <tr><td colspan="4" class="text-center text-xs text-matrix/40 py-8">종목분석 탭에서 분석을 실행하면 여기에 쌓입니다</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </section>
 
     <!-- ─── 7. MACRO ──────────────────────────────────────────────────── -->
