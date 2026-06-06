@@ -38,7 +38,13 @@ export async function fetchClose(ticker, startDate, endDate = null) {
 }
 
 // ── Stooq 티커 변환 ─────────────────────────────────────────────────
+const _STOOQ_IDX = {
+  '^GSPC': '^spx', '^IXIC': '^ixic', '^N225': '^nkx',
+};
+
 function _toStooqTicker(ticker) {
+  if (_STOOQ_IDX[ticker]) return _STOOQ_IDX[ticker];
+  if (ticker.startsWith('^')) return ticker.toLowerCase(); // 기타 지수 소문자 그대로
   if (ticker.endsWith('.KS') || ticker.endsWith('.KQ'))
     return ticker.replace(/\.(KS|KQ)$/i, '').toLowerCase() + '.kr';
   if (ticker === 'ETH-USD') return 'eth.v';

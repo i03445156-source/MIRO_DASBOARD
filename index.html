@@ -377,6 +377,40 @@
         <!-- ── 왼쪽: 차트 영역 ─────────────────────────────────── -->
         <div class="flex-1 min-w-0">
 
+          <!-- Global Indices -->
+          <div class="section-subheader">📈 글로벌 주요 지수</div>
+          <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-3">
+            <div class="kpi-card text-center">
+              <div class="kpi-label">🇰🇷 KOSPI</div>
+              <div class="kpi-value" id="idx-kospi">--</div>
+              <div class="text-xs mt-0.5" id="idx-kospi-chg">--</div>
+            </div>
+            <div class="kpi-card text-center">
+              <div class="kpi-label">🇰🇷 KOSDAQ</div>
+              <div class="kpi-value" id="idx-kosdaq">--</div>
+              <div class="text-xs mt-0.5" id="idx-kosdaq-chg">--</div>
+            </div>
+            <div class="kpi-card text-center">
+              <div class="kpi-label">🇺🇸 NASDAQ</div>
+              <div class="kpi-value" id="idx-nasdaq">--</div>
+              <div class="text-xs mt-0.5" id="idx-nasdaq-chg">--</div>
+            </div>
+            <div class="kpi-card text-center">
+              <div class="kpi-label">🇺🇸 S&amp;P 500</div>
+              <div class="kpi-value" id="idx-sp500">--</div>
+              <div class="text-xs mt-0.5" id="idx-sp500-chg">--</div>
+            </div>
+            <div class="kpi-card text-center">
+              <div class="kpi-label">🇯🇵 Nikkei</div>
+              <div class="kpi-value" id="idx-nikkei">--</div>
+              <div class="text-xs mt-0.5" id="idx-nikkei-chg">--</div>
+            </div>
+          </div>
+          <div class="card mb-4">
+            <div class="card-title">주요 지수 비교 (정규화, 기간 첫날=100)</div>
+            <div id="chart-indices" style="height:220px;min-height:220px;width:100%;"></div>
+          </div>
+
           <!-- Exchange Rates -->
           <div class="section-subheader">💱 환율 (실시간)</div>
           <div class="grid grid-cols-2 gap-3 mb-3" id="macro-fx-cards">

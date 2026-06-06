@@ -4,10 +4,19 @@
 //  FRED API (금리/레포, 무료/키 필요)
 // ══════════════════════════════════════════════════════════════════════
 
-import { fetchFXRates, fetchFXHistory, fetchFRED } from './api.js';
+import { fetchFXRates, fetchFXHistory, fetchFRED, fetchClose } from './api.js';
 import { DARK_LAYOUT, PLOTLY_CONFIG } from './config.js';
 
 const BOK_RATE = 2.75; // 2026년 기준 수동 업데이트
+
+const INDICES = [
+  { ticker: '^KS11', name: 'KOSPI',   id: 'kospi',  decimals: 0 },
+  { ticker: '^KQ11', name: 'KOSDAQ',  id: 'kosdaq', decimals: 2 },
+  { ticker: '^IXIC', name: 'NASDAQ',  id: 'nasdaq', decimals: 0 },
+  { ticker: '^GSPC', name: 'S&P 500', id: 'sp500',  decimals: 0 },
+  { ticker: '^N225', name: 'Nikkei',  id: 'nikkei', decimals: 0 },
+];
+const IDX_COLORS = ['#2563eb', '#16a34a', '#d97706', '#7c3aed', '#dc2626'];
 
 // ══════════════════════════════════════════════════════════════════════
 //  매크로 탭 초기 로드
@@ -16,10 +25,87 @@ const BOK_RATE = 2.75; // 2026년 기준 수동 업데이트
 export async function loadMacroTab(days = null) {
   const period = days || 90;
   await Promise.allSettled([
+    loadIndicesSection(period),
     loadFXSection(period),
     loadRatesSection(period),
     loadRepoSection(period),
   ]);
+}
+
+// ── 글로벌 주요 지수 ──────────────────────────────────────────────
+
+async function loadIndicesSection(days = 90) {
+  const bufStart = new Date();
+  bufStart.setDate(bufStart.getDate() - days - 10);
+  const startStr = bufStart.toISOString().split('T')[0];
+
+  const results = await Promise.allSettled(
+    INDICES.map(idx => fetchClose(idx.ticker, startStr))
+  );
+
+  const periodStart = new Date();
+  periodStart.setDate(periodStart.getDate() - days);
+  const periodStartStr = periodStart.toISOString().split('T')[0];
+
+  const traces = [];
+
+  results.forEach((res, i) => {
+    const idx  = INDICES[i];
+    const valEl = document.getElementById(`idx-${idx.id}`);
+    const chgEl = document.getElementById(`idx-${idx.id}-chg`);
+
+    if (res.status === 'fulfilled' && res.value?.closes?.length >= 2) {
+      const { dates, closes } = res.value;
+
+      const validPairs = closes.reduce((acc, v, j) => {
+        if (v !== null) acc.push({ d: dates[j], v });
+        return acc;
+      }, []);
+
+      if (validPairs.length >= 2) {
+        const last = validPairs[validPairs.length - 1].v;
+        const prev = validPairs[validPairs.length - 2].v;
+        const changePct = (last - prev) / prev * 100;
+
+        if (valEl) valEl.textContent = last.toLocaleString('en-US', { maximumFractionDigits: idx.decimals });
+        if (chgEl) {
+          const sign = changePct >= 0 ? '+' : '';
+          chgEl.textContent = `${sign}${changePct.toFixed(2)}%`;
+          chgEl.style.color = changePct >= 0 ? '#16a34a' : '#dc2626';
+        }
+      }
+
+      // 정규화 차트용 (기간 내 데이터만)
+      const periodPairs = validPairs.filter(p => p.d >= periodStartStr);
+      if (periodPairs.length >= 2) {
+        const base = periodPairs[0].v;
+        traces.push({
+          x: periodPairs.map(p => p.d),
+          y: periodPairs.map(p => +((p.v / base * 100).toFixed(2))),
+          mode: 'lines',
+          name: idx.name,
+          line: { color: IDX_COLORS[i], width: 2 },
+        });
+      }
+    } else {
+      if (valEl) valEl.textContent = '오류';
+      if (chgEl) { chgEl.textContent = '--'; chgEl.style.color = ''; }
+    }
+  });
+
+  if (traces.length > 0) {
+    const chartEl = document.getElementById('chart-indices');
+    Plotly.newPlot('chart-indices', traces, {
+      ...DARK_LAYOUT,
+      height: 220,
+      width: chartEl ? chartEl.clientWidth || undefined : undefined,
+      yaxis: { ...DARK_LAYOUT.yaxis, title: '지수 (기준=100)' },
+      xaxis: { ...DARK_LAYOUT.xaxis, title: '날짜' },
+      margin: { l: 60, r: 20, t: 10, b: 50 },
+      legend: { orientation: 'h', y: -0.35, font: { size: 10 } },
+    }, PLOTLY_CONFIG);
+    setTimeout(() => window.dispatchEvent(new Event('resize')), 300);
+  }
 }
 
 // ── 환율 ─────────────────────────────────────────────────────────────
